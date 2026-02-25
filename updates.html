@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Refill Studios - Updates</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="left">
+        <img src="images/Logo.png" alt="Logo Icon" class="logo">
+        <img src="images/Title.png" alt="Refill Studios Title" class="title-img">
+      </div>
+      <div class="right">
+        <!-- This will be populated by header-system.js -->
+      </div>
+    </header>
+
+    <nav>
+      <button id="index-button" class="nav-btn">HOME</button>
+      <button id="games-button" class="nav-btn">GAMES</button>
+      <button id="updates-button" class="nav-btn active">UPDATES</button>
+    </nav>
+
+    <main>
+      <div class="updates-main">
+        <!-- Left Column: Posts (70%) -->
+        <div class="posts-column">
+          <div class="posts-header">
+            <h2 class="section-title">DEVELOPER POSTS</h2>
+            <button class="admin-add-post" id="admin-add-post" title="Create New Post">+</button>
+          </div>
+          
+          <div class="user-role-indicator" id="user-role-indicator"></div>
+          <p class="note" id="user-role-note">Click on a post to view and add comments.</p>
+          
+          <div class="posts-list" id="posts-list"></div>
+        </div>
+        
+        <!-- Right Column: Comments (30%) -->
+        <div class="comments-column">
+          <div class="comments-header">
+            <h2 class="section-title">COMMENTS</h2>
+            <button class="add-comment-btn" id="add-comment-btn" title="Add Comment">+</button>
+          </div>
+          
+          <div class="comments-list" id="comments-list"></div>
+          
+          <div class="comment-form" id="comment-form">
+            <div class="form-title">ADD A COMMENT</div>
+            <textarea class="comment-input" id="comment-input" placeholder="Type your comment here..."></textarea>
+            <div class="form-buttons">
+              <button type="button" class="cancel-btn" id="cancel-comment">Cancel</button>
+              <button type="button" class="submit-btn" id="submit-comment">Post Comment</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Image Modal -->
+  <div class="image-modal" id="image-modal">
+    <span class="close-modal" onclick="closeImageModal()">&times;</span>
+    <img class="modal-image" id="modal-image" src="" alt="Full Size Image">
+  </div>
+
+  <!-- Scripts in correct order -->
+  <script src="user-system.js"></script>
+  <script src="header-system.js"></script>
+  <script src="index.js"></script>
+  <script src="updates.js"></script>
+</body>
+</html>
