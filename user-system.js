@@ -6,9 +6,8 @@ window.currentUser = {
     profilePic: 'images/account.png'
 };
 
-// Initialize user system
+// Check session on page load
 async function initializeUserSystem() {
-    // Check session via API
     try {
         const response = await fetch('api/check-session.php');
         const data = await response.json();
@@ -40,7 +39,7 @@ async function initializeUserSystem() {
     updateUserUI();
 }
 
-// Login function using API
+// Login function
 async function loginUser(username, password) {
     try {
         const response = await fetch('api/login.php', {
@@ -64,38 +63,18 @@ async function loginUser(username, password) {
             localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
             updateUserUI();
             
-            return { success: true, user: window.currentUser };
+            // Redirect to updates page
+            window.location.href = 'updates.html';
+            
+            return { success: true };
         } else {
-            return { success: false, message: data.message };
+            alert(data.message || 'Login failed');
+            return { success: false };
         }
     } catch (error) {
         console.error('Login error:', error);
-        return { success: false, message: 'Connection error' };
-    }
-}
-
-// Register function using API
-async function registerUser(username, email, password) {
-    try {
-        const response = await fetch('api/register.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, email, password })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Auto login after registration
-            return await loginUser(username, password);
-        } else {
-            return { success: false, message: data.message };
-        }
-    } catch (error) {
-        console.error('Registration error:', error);
-        return { success: false, message: 'Connection error' };
+        alert('Connection error');
+        return { success: false };
     }
 }
 
@@ -117,9 +96,28 @@ async function logoutUser() {
     localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
     updateUserUI();
     
-    if (window.location.pathname.includes('updates.html')) {
-        window.location.reload();
-    } else {
-        window.location.href = 'updates.html';
+    window.location.href = 'updates.html';
+}
+
+// Update UI
+function updateUserUI() {
+    const accountLink = document.getElementById('account-link-text');
+    if (accountLink) {
+        accountLink.textContent = window.currentUser.username;
+    }
+    
+    const profilePic = document.getElementById('profile-pic-header');
+    if (profilePic) {
+        profilePic.src = window.currentUser.profilePic;
     }
 }
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initializeUserSystem();
+});
+
+// Make functions global
+window.loginUser = loginUser;
+window.logoutUser = logoutUser;
+window.getCurrentUser = () => window.currentUser;

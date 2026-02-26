@@ -30,9 +30,10 @@ function signUp() {
     window.location.href = "register.html";
 }
 
-function handleLogin() {
-    const usernameInput = document.querySelector('.input-box[placeholder="Username"]');
-    const passwordInput = document.querySelector('.input-box[placeholder="Password"]');
+// In accountManager.js - replace the handleLogin function
+async function handleLogin() {
+    const usernameInput = document.getElementById('username-input');
+    const passwordInput = document.getElementById('password-input');
     
     if (!usernameInput || !passwordInput) {
         console.error('Login inputs not found');
@@ -47,56 +48,8 @@ function handleLogin() {
         return;
     }
     
-    // Check for demo accounts
-    if (username.toLowerCase() === 'admin' && password === 'admin123') {
-        const userData = {
-            username: 'Admin',
-            role: 'admin',
-            isLoggedIn: true,
-            profilePic: 'images/account.png'
-        };
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        localStorage.setItem('refillUser', JSON.stringify(userData)); // ALSO SAVE TO REFILLUSER
-        alert('Login successful! Welcome Admin.');
-        window.location.href = 'updates.html';
-        return;
-    }
-    
-    if (username.toLowerCase() === 'dev' && password === 'dev123') {
-        const userData = {
-            username: 'Developer',
-            role: 'developer',
-            isLoggedIn: true,
-            profilePic: 'images/account.png'
-        };
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        localStorage.setItem('refillUser', JSON.stringify(userData)); // ALSO SAVE TO REFILLUSER
-        alert('Login successful! Welcome Developer.');
-        window.location.href = 'updates.html';
-        return;
-    }
-    
-    // Check for existing users
-    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    const foundUser = users.find(user => 
-        user.username.toLowerCase() === username.toLowerCase() && 
-        user.password === password
-    );
-    
-    if (foundUser) {
-        const userData = {
-            username: foundUser.username,
-            role: 'user',
-            isLoggedIn: true,
-            profilePic: 'images/account.png'
-        };
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        localStorage.setItem('refillUser', JSON.stringify(userData)); // ALSO SAVE TO REFILLUSER
-        alert('Login successful!');
-        window.location.href = 'updates.html';
-    } else {
-        alert('Invalid username or password');
-    }
+    // Call the login function from user-system.js
+    await window.loginUser(username, password);
 }
 
 function handleRegister() {

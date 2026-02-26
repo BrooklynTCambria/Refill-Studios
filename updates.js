@@ -56,43 +56,35 @@ function refreshUserData() {
 // ============================================
 // POSTS MANAGEMENT
 // ============================================
-function loadPostsFromStorage() {
-    const savedPosts = JSON.parse(localStorage.getItem('refillPosts') || '[]');
-    return savedPosts;
+// Replace these functions in updates.js
+
+async function loadPostsFromDatabase() {
+    try {
+        const response = await fetch('api/posts.php');
+        const posts = await response.json();
+        return posts;
+    } catch (error) {
+        console.error('Error loading posts:', error);
+        return [];
+    }
 }
 
-function getAllPosts() {
-    return JSON.parse(localStorage.getItem('refillPosts') || '[]');
-}
-
-function saveAllPosts(posts) {
-    localStorage.setItem('refillPosts', JSON.stringify(posts));
-    console.log('💾 Saved all posts to localStorage:', posts.length, 'posts');
-}
-
-function renderPosts() {
+async function renderPosts() {
     const postsList = document.getElementById('posts-list');
     if (!postsList) return;
     
     postsList.innerHTML = '';
     
-    const allPosts = getAllPosts();
+    const allPosts = await loadPostsFromDatabase();
     
-    // Show empty state if no posts
     if (allPosts.length === 0) {
-        const emptyState = document.createElement('div');
-        emptyState.className = 'empty-posts';
-        emptyState.innerHTML = `
+        postsList.innerHTML = `
             <div style="text-align: center; padding: 40px 20px; color: #aaa;">
                 <div style="font-size: 48px; margin-bottom: 20px;">📝</div>
                 <h3 style="color: #d0d0d0; margin-bottom: 10px;">No posts yet</h3>
                 <p>Be the first to create a post!</p>
-                ${(window.currentUser?.role === 'admin' || window.currentUser?.role === 'developer') 
-                    ? '<p><small>Click the + button above to create a post</small></p>' 
-                    : '<p><small>Only admins and developers can create posts</small></p>'}
             </div>
         `;
-        postsList.appendChild(emptyState);
         return;
     }
     
@@ -101,24 +93,14 @@ function renderPosts() {
         postElement.className = `post ${index === 0 ? 'active' : ''}`;
         postElement.setAttribute('data-post-id', post.id);
         
-        // Image HTML
         let imageHtml = '';
-        if (post.image) {
-            let imageSrc = '';
-            if (typeof post.image === 'string') {
-                imageSrc = post.image;
-            } else if (post.image.dataUrl) {
-                imageSrc = post.image.dataUrl;
-            }
-            
-            if (imageSrc) {
-                imageHtml = `
-                    <div class="post-image-container" style="display: block;">
-                        <img src="${imageSrc}" alt="Post Image" class="post-image" onclick="openImageModal('${imageSrc}')">
-                        <div class="image-label">📎 Attached Image</div>
-                    </div>
-                `;
-            }
+        if (post.image_url) {
+            imageHtml = `
+                <div class="post-image-container" style="display: block;">
+                    <img src="${post.image_url}" alt="Post Image" class="post-image" onclick="openImageModal('${post.image_url}')">
+                    <div class="image-label">📎 Attached Image</div>
+                </div>
+            `;
         }
         
         postElement.innerHTML = `
@@ -126,19 +108,19 @@ function renderPosts() {
             <p class="post-description">${post.description}</p>
             ${imageHtml}
             <div class="post-meta">
-                ${post.author || 'Dev Team'} | ${post.role} | <span class="bold-date">${post.date}</span>
+                ${post.author_name} | ${post.author_role} | 
+                <span class="bold-date">${new Date(post.created_at).toLocaleString()}</span>
             </div>
         `;
         
         postsList.appendChild(postElement);
         
-        // Set first post as active
         if (index === 0) {
             currentPostId = post.id;
         }
     });
     
-    // Add click events to posts
+    // Add click events
     setTimeout(() => {
         const posts = document.querySelectorAll('.post');
         posts.forEach(post => {
@@ -150,11 +132,103 @@ function renderPosts() {
             });
         });
         
-        // Load comments for first post
         if (allPosts.length > 0) {
             loadComments(currentPostId);
         }
     }, 100);
+}
+
+async function loadComments(postId) {
+    const commentsList = document.getElementById('comments-list');
+    if (!commentsList) return;
+    
+    commentsList.innerHTML = '';
+    
+    try {
+        const response = await fetch(`api/comments.php?post_id=${postId}`);
+        const comments = await response.json();
+        
+        if (comments.length === 0) {
+            commentsList.innerHTML = '<div class="empty-comments">No comments yet. Be the first to comment!</div>';
+        } else {
+            comments.forEach(comment => {
+                const commentElement = document.createElement('div');
+                commentElement.className = 'comment';
+                commentElement.innerHTML = `
+                    <div class="comment-header">
+                        <span>${comment.username} | ${new Date(comment.created_at).toLocaleTimeString()} today</span>
+                        ${comment.is_dev ? '<span class="dev-badge">DEV</span>' : ''}
+                    </div>
+                    <p class="comment-text">${comment.text}</p>
+                `;
+                commentsList.appendChild(commentElement);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading comments:', error);
+        commentsList.innerHTML = '<div class="empty-comments">Error loading comments</div>';
+    }
+}
+
+async function addComment(text) {
+    if (!text.trim()) return;
+    
+    if (!window.currentUser.isLoggedIn) {
+        alert('Please login to comment.');
+        return;
+    }
+    
+    try {
+        const response = await fetch('api/comments.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                post_id: currentPostId,
+                text: text.trim()
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Reload comments
+            await loadComments(currentPostId);
+            
+            // Clear form
+            const commentInput = document.getElementById('comment-input');
+            const commentForm = document.getElementById('comment-form');
+            if (commentInput) commentInput.value = '';
+            if (commentForm) commentForm.classList.remove('active');
+        } else {
+            alert(result.message || 'Failed to add comment');
+        }
+    } catch (error) {
+        console.error('Error adding comment:', error);
+        alert('Failed to add comment');
+    }
+}
+
+// Update initialization
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Updates page loaded - Initializing...');
+    
+    setTimeout(async () => {
+        await renderPosts();
+        setupEventListeners();
+        checkForNewPostNotification();
+        updateUIForUserRole();
+    }, 100);
+});
+
+function getAllPosts() {
+    return JSON.parse(localStorage.getItem('refillPosts') || '[]');
+}
+
+function saveAllPosts(posts) {
+    localStorage.setItem('refillPosts', JSON.stringify(posts));
+    console.log('💾 Saved all posts to localStorage:', posts.length, 'posts');
 }
 
 // ============================================
