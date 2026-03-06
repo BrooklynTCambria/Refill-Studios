@@ -58,7 +58,10 @@ function refreshUserData() {
 // ============================================
 // Replace these functions in updates.js
 
-async function loadPostsFromDatabase() {
+// Replace these functions in updates.js
+
+// Load posts from database
+async function loadPosts() {
     try {
         const response = await fetch('api/posts.php');
         const posts = await response.json();
@@ -69,13 +72,14 @@ async function loadPostsFromDatabase() {
     }
 }
 
+// Render posts from database
 async function renderPosts() {
     const postsList = document.getElementById('posts-list');
     if (!postsList) return;
     
     postsList.innerHTML = '';
     
-    const allPosts = await loadPostsFromDatabase();
+    const allPosts = await loadPosts();
     
     if (allPosts.length === 0) {
         postsList.innerHTML = `
@@ -103,13 +107,20 @@ async function renderPosts() {
             `;
         }
         
+        const postDate = new Date(post.created_at).toLocaleString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
         postElement.innerHTML = `
             <h3 class="post-header">${post.header}</h3>
             <p class="post-description">${post.description}</p>
             ${imageHtml}
             <div class="post-meta">
-                ${post.author_name} | ${post.author_role} | 
-                <span class="bold-date">${new Date(post.created_at).toLocaleString()}</span>
+                ${post.author_name} | ${post.author_role} | <span class="bold-date">${postDate}</span>
             </div>
         `;
         
@@ -128,15 +139,102 @@ async function renderPosts() {
                 posts.forEach(p => p.classList.remove('active'));
                 this.classList.add('active');
                 currentPostId = parseInt(this.getAttribute('data-post-id'));
-                loadComments(currentPostId);
+                loadCommentsFromDB(currentPostId);
             });
         });
         
         if (allPosts.length > 0) {
-            loadComments(currentPostId);
+            loadCommentsFromDB(currentPostId);
         }
     }, 100);
 }
+
+// Load comments from database
+async function loadCommentsFromDB(postId) {
+    const commentsList = document.getElementById('comments-list');
+    if (!commentsList) return;
+    
+    commentsList.innerHTML = '<div style="text-align: center; padding: 20px;">Loading comments...</div>';
+    
+    try {
+        const response = await fetch(`api/comments.php?post_id=${postId}`);
+        const comments = await response.json();
+        
+        commentsList.innerHTML = '';
+        
+        if (comments.length === 0) {
+            commentsList.innerHTML = '<div class="empty-comments">No comments yet. Be the first to comment!</div>';
+        } else {
+            comments.forEach(comment => {
+                const commentDate = new Date(comment.created_at).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                const commentElement = document.createElement('div');
+                commentElement.className = 'comment';
+                commentElement.innerHTML = `
+                    <div class="comment-header">
+                        <span>${comment.username} | ${commentDate} today</span>
+                        ${comment.is_dev ? '<span class="dev-badge">DEV</span>' : ''}
+                    </div>
+                    <p class="comment-text">${comment.text}</p>
+                `;
+                commentsList.appendChild(commentElement);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading comments:', error);
+        commentsList.innerHTML = '<div class="empty-comments">Error loading comments</div>';
+    }
+}
+
+// Add comment to database
+async function addCommentToDB(text) {
+    if (!text.trim()) return;
+    
+    if (!window.currentUser.isLoggedIn) {
+        alert('Please login to comment.');
+        return;
+    }
+    
+    try {
+        const response = await fetch('api/comments.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                post_id: currentPostId,
+                text: text.trim()
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await loadCommentsFromDB(currentPostId);
+            
+            const commentInput = document.getElementById('comment-input');
+            const commentForm = document.getElementById('comment-form');
+            if (commentInput) commentInput.value = '';
+            if (commentForm) commentForm.classList.remove('active');
+        } else {
+            alert(result.message || 'Failed to add comment');
+        }
+    } catch (error) {
+        console.error('Error adding comment:', error);
+        alert('Failed to add comment');
+    }
+}
+
+// Update the submit comment button event
+document.getElementById('submit-comment')?.addEventListener('click', function() {
+    const commentInput = document.getElementById('comment-input');
+    if (commentInput) {
+        addCommentToDB(commentInput.value);
+    }
+});
 
 async function loadComments(postId) {
     const commentsList = document.getElementById('comments-list');
@@ -210,12 +308,12 @@ async function addComment(text) {
     }
 }
 
-// Update initialization
+// In the DOMContentLoaded event
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Updates page loaded - Initializing...');
     
     setTimeout(async () => {
-        await renderPosts();
+        await renderPosts(); // This now loads from database
         setupEventListeners();
         checkForNewPostNotification();
         updateUIForUserRole();

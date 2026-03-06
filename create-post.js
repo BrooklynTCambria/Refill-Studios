@@ -216,13 +216,27 @@ async function createPostWithImage() {
     reader.readAsDataURL(selectedImage);
 }
 
+// Replace the createPost function in create-post.js with this:
+
 async function createPost(imageData) {
     try {
+        // First check if user is still logged in
+        const sessionCheck = await fetch('api/check-session.php');
+        const sessionData = await sessionCheck.json();
+        
+        if (!sessionData.loggedIn) {
+            alert('Your session has expired. Please login again.');
+            window.location.href = 'account.html';
+            return;
+        }
+        
         const postData = {
             header: headerInput.value.trim(),
             description: descInput.value.trim(),
             image_url: imageData || null
         };
+        
+        console.log('Sending post data:', postData);
         
         const response = await fetch('api/posts.php', {
             method: 'POST',
@@ -233,6 +247,7 @@ async function createPost(imageData) {
         });
         
         const result = await response.json();
+        console.log('Server response:', result);
         
         if (result.success) {
             // Show success message
@@ -246,17 +261,18 @@ async function createPost(imageData) {
                 }, 2000);
             }, 1000);
         } else {
-            alert('Error creating post: ' + result.message);
+            alert('Error: ' + (result.message || 'Failed to create post'));
             submitBtn.disabled = false;
             submitBtn.textContent = 'Post';
         }
     } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to create post. Please try again.');
+        console.error('Error creating post:', error);
+        alert('Failed to create post. Please check console for details.');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Post';
     }
 }
+
 
 function resetForm() {
     form.reset();
