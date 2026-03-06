@@ -1,4 +1,4 @@
-// Account Manager - Integrated with Updates System and Dropdown
+// accountManager.js - Updated to use PHP backend
 
 function getCurrentPage() {
     let path = window.location.pathname;
@@ -25,12 +25,11 @@ function signUp() {
         console.log("Already on register page, not refreshing");
         return;
     }
-    
     console.log("Navigating to register page");
     window.location.href = "register.html";
 }
 
-// In accountManager.js - replace the handleLogin function
+// Updated login function using PHP API
 async function handleLogin() {
     const usernameInput = document.getElementById('username-input');
     const passwordInput = document.getElementById('password-input');
@@ -48,15 +47,48 @@ async function handleLogin() {
         return;
     }
     
-    // Call the login function from user-system.js
-    await window.loginUser(username, password);
+    try {
+        const response = await fetch('api/login.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update the global user object
+            if (window.currentUser) {
+                window.currentUser = {
+                    username: data.user.username,
+                    role: data.user.role,
+                    isLoggedIn: true,
+                    profilePic: data.user.profile_pic || 'images/account.png'
+                };
+            }
+            
+            // Save to localStorage as backup
+            localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
+            
+            alert('Login successful!');
+            window.location.href = 'updates.html';
+        } else {
+            alert(data.message || 'Invalid username or password');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        alert('Connection error. Please try again.');
+    }
 }
 
-function handleRegister() {
-    const emailInput = document.querySelector('.input-box[placeholder="Example@gmail.com"]');
-    const usernameInput = document.querySelector('.input-box[placeholder="Username"]');
-    const passwordInput = document.querySelector('.input-box[type="password"]');
-    const confirmInput = document.querySelectorAll('.input-box[type="password"]')[1];
+// Updated register function using PHP API
+async function handleRegister() {
+    const emailInput = document.getElementById('email-input');
+    const usernameInput = document.getElementById('username-input');
+    const passwordInput = document.getElementById('password-input');
+    const confirmInput = document.getElementById('confirm-password-input');
     
     if (!emailInput || !usernameInput || !passwordInput || !confirmInput) {
         console.error('Register inputs not found');
@@ -74,7 +106,6 @@ function handleRegister() {
         return;
     }
     
-    // Simple email validation
     if (!email.includes('@') || !email.includes('.')) {
         alert('Please enter a valid email address');
         return;
@@ -95,43 +126,32 @@ function handleRegister() {
         return;
     }
     
-    // Check if user already exists
-    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    if (users.some(user => user.username.toLowerCase() === username.toLowerCase())) {
-        alert('Username already exists');
-        return;
+    try {
+        const response = await fetch('api/register.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Registration successful! You can now login.');
+            window.location.href = 'account.html';
+        } else {
+            alert(data.message || 'Registration failed');
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        alert('Connection error. Please try again.');
     }
-    
-    if (users.some(user => user.email.toLowerCase() === email.toLowerCase())) {
-        alert('Email already registered');
-        return;
-    }
-    
-    // Save new user
-    const newUser = {
-        email: email,
-        username: username,
-        password: password,
-        createdAt: new Date().toISOString()
-    };
-    
-    users.push(newUser);
-    localStorage.setItem('registeredUsers', JSON.stringify(users));
-    
-    // Auto-login after registration
-    const userData = {
-        username: username,
-        role: 'user'
-    };
-    localStorage.setItem('currentUser', JSON.stringify(userData));
-    
-    alert('Registration successful! Welcome to Refill Studios.');
-    window.location.href = 'updates.html';
 }
 
 // Setup event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Setup navigation buttons (available on all pages)
+    // Setup navigation buttons
     const indexButton = document.getElementById('index-button');
     const gamesButton = document.getElementById('games-button');
     const updatesButton = document.getElementById('updates-button');
@@ -139,12 +159,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (indexButton) indexButton.addEventListener('click', () => window.location.href = 'index.html');
     if (gamesButton) gamesButton.addEventListener('click', () => window.location.href = 'games.html');
     if (updatesButton) updatesButton.addEventListener('click', () => window.location.href = 'updates.html');
-    
-    // Setup account link (for simple pages without dropdown)
-    const accountLink = document.getElementById("account-link");
-    if (accountLink && !accountLink.id.includes('text')) {
-        accountLink.addEventListener("click", account);
-    }
     
     // Setup sign-up button (on login page)
     const signUpButton = document.getElementById("sign-up-button");
@@ -167,8 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loginButton.addEventListener("click", handleLogin);
         }
         
-        // Also allow Enter key in password field
-        const passwordInput = document.querySelector('.input-box[placeholder="Password"]');
+        const passwordInput = document.getElementById('password-input');
         if (passwordInput) {
             passwordInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
@@ -179,16 +192,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (currentPage === "Register") {
-        const registerButton = document.querySelector('.account-button');
-        
+        const registerButton = document.getElementById('register-button');
         if (registerButton) {
             registerButton.addEventListener("click", handleRegister);
         }
         
-        // Allow Enter key in last password field
-        const passwordInputs = document.querySelectorAll('.input-box[type="password"]');
-        if (passwordInputs.length > 1) {
-            passwordInputs[1].addEventListener('keydown', (e) => {
+        const confirmInput = document.getElementById('confirm-password-input');
+        if (confirmInput) {
+            confirmInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     handleRegister();
                 }
@@ -197,33 +208,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Logout function (call this from anywhere to logout)
-function logout() {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('refillUser');
-    alert('Logged out successfully.');
-    
-    // Redirect based on current page
-    const currentPage = getCurrentPage();
-    if (currentPage === "Updates") {
-        window.location.reload();
-    } else {
-        window.location.href = 'account.html';
-    }
-}
-
-// Check if user is logged in
-function isLoggedIn() {
-    return localStorage.getItem('currentUser') !== null;
-}
-
-// Get current user data
-function getCurrentUser() {
-    const userJson = localStorage.getItem('currentUser');
-    return userJson ? JSON.parse(userJson) : null;
-}
-
 // Make functions available globally
-window.logout = logout;
-window.isLoggedIn = isLoggedIn;
-window.getCurrentUser = getCurrentUser;
+window.account = account;
+window.signUp = signUp;

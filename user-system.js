@@ -1,4 +1,4 @@
-// user-system.js - Updated to use PHP backend
+// user-system.js - Unified User System with PHP Backend
 window.currentUser = {
     username: 'Guest',
     role: 'user',
@@ -19,12 +19,17 @@ async function initializeUserSystem() {
                 isLoggedIn: true,
                 profilePic: data.user.profile_pic || 'images/account.png'
             };
+            // Save to localStorage as backup
             localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
+            console.log('User logged in from session:', window.currentUser);
         } else {
             // Fallback to localStorage
             const savedUser = JSON.parse(localStorage.getItem('refillUser'));
-            if (savedUser) {
+            if (savedUser && savedUser.isLoggedIn) {
                 window.currentUser = savedUser;
+                console.log('Using saved user from localStorage:', window.currentUser);
+            } else {
+                console.log('No user logged in');
             }
         }
     } catch (error) {
@@ -36,7 +41,8 @@ async function initializeUserSystem() {
         }
     }
     
-    updateUserUI();
+    // Update UI after loading user
+    setTimeout(updateUserUI, 50);
 }
 
 // Login function
@@ -63,18 +69,13 @@ async function loginUser(username, password) {
             localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
             updateUserUI();
             
-            // Redirect to updates page
-            window.location.href = 'updates.html';
-            
-            return { success: true };
+            return { success: true, user: window.currentUser };
         } else {
-            alert(data.message || 'Login failed');
-            return { success: false };
+            return { success: false, message: data.message };
         }
     } catch (error) {
         console.error('Login error:', error);
-        alert('Connection error');
-        return { success: false };
+        return { success: false, message: 'Connection error' };
     }
 }
 
@@ -96,19 +97,47 @@ async function logoutUser() {
     localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
     updateUserUI();
     
-    window.location.href = 'updates.html';
+    // Redirect based on current page
+    const currentPage = window.location.pathname;
+    if (currentPage.includes('updates.html')) {
+        window.location.reload();
+    } else {
+        window.location.href = 'updates.html';
+    }
 }
 
-// Update UI
+// Update UI elements
 function updateUserUI() {
+    // Update account link text in dropdown
     const accountLink = document.getElementById('account-link-text');
     if (accountLink) {
         accountLink.textContent = window.currentUser.username;
     }
     
+    // Update profile picture
     const profilePic = document.getElementById('profile-pic-header');
     if (profilePic) {
         profilePic.src = window.currentUser.profilePic;
+    }
+    
+    // Update any other user-dependent UI elements
+    const userRoleIndicator = document.getElementById('user-role-indicator');
+    if (userRoleIndicator) {
+        if (window.currentUser.isLoggedIn) {
+            userRoleIndicator.textContent = `Welcome, ${window.currentUser.username}! (${window.currentUser.role.toUpperCase()})`;
+        } else {
+            userRoleIndicator.textContent = 'Welcome, Guest!';
+        }
+    }
+    
+    // Show/hide admin buttons
+    const adminAddPost = document.getElementById('admin-add-post');
+    if (adminAddPost) {
+        if (window.currentUser.role === 'admin' || window.currentUser.role === 'developer') {
+            adminAddPost.style.display = 'flex';
+        } else {
+            adminAddPost.style.display = 'none';
+        }
     }
 }
 
@@ -121,3 +150,4 @@ document.addEventListener('DOMContentLoaded', function() {
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
 window.getCurrentUser = () => window.currentUser;
+window.initializeUserSystem = initializeUserSystem;

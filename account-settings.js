@@ -1,27 +1,49 @@
-// Simple Account Settings Page JavaScript
+// account-settings.js - Fixed to use PHP session
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if user is logged in
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser) {
-        alert('Please login first');
-        window.location.href = 'account.html';
-        return;
+document.addEventListener('DOMContentLoaded', async function() {
+    // Wait for user system to initialize
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Check if user is logged in via PHP session
+    try {
+        const response = await fetch('api/check-session.php');
+        const data = await response.json();
+        
+        if (!data.loggedIn) {
+            alert('Please login first');
+            window.location.href = 'account.html';
+            return;
+        }
+        
+        // Update window.currentUser with session data
+        window.currentUser = {
+            username: data.user.username,
+            role: data.user.role,
+            isLoggedIn: true,
+            profilePic: data.user.profile_pic || 'images/account.png'
+        };
+        
+        // Save to localStorage as backup
+        localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
+        
+    } catch (error) {
+        console.error('Error checking session:', error);
+        
+        // Fallback to localStorage
+        const savedUser = JSON.parse(localStorage.getItem('refillUser'));
+        if (!savedUser || !savedUser.isLoggedIn) {
+            alert('Please login first');
+            window.location.href = 'account.html';
+            return;
+        }
+        window.currentUser = savedUser;
     }
     
-    // Check if user is logged in using the unified system
-    if (!window.currentUser || !window.currentUser.isLoggedIn) {
-        alert('Please login first');
-        window.location.href = 'account.html';
-        return;
-    }
-    
-    // Load user data from the unified system
-    const userData = {
-        username: window.currentUser.username || 'Guest',
-        profilePic: window.currentUser.profilePic || 'images/account.png'
-    };
-    
+    // Now initialize the page
+    initializeSettingsPage();
+});
+
+function initializeSettingsPage() {
     // DOM Elements
     const profilePreview = document.getElementById('profile-preview-large');
     const profileHeader = document.getElementById('profile-pic-header');
@@ -33,11 +55,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const cancelBtn = document.getElementById('cancel-btn');
     const saveSuccess = document.getElementById('save-success');
     
-    // Load user data into form
+    // Load user data
     function loadUserData() {
-        profilePreview.src = userData.profilePic;
-        profileHeader.src = userData.profilePic;
-        usernameInput.value = userData.username;
+        profilePreview.src = window.currentUser.profilePic || 'images/account.png';
+        if (profileHeader) profileHeader.src = window.currentUser.profilePic || 'images/account.png';
+        usernameInput.value = window.currentUser.username;
         updateCounter();
     }
     
@@ -45,7 +67,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateCounter() {
         usernameCounter.textContent = `${usernameInput.value.length}/20`;
         usernameCounter.className = 'char-counter';
-        
         if (usernameInput.value.length > 18) {
             usernameCounter.classList.add('warning');
         }
@@ -60,13 +81,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const file = event.target.files[0];
         if (!file) return;
         
-        // Check if it's an image
         if (!file.type.match('image.*')) {
             alert('Please select an image file.');
             return;
         }
         
-        // Check file size (max 2MB)
         if (file.size > 2 * 1024 * 1024) {
             alert('Image must be less than 2MB.');
             return;
@@ -75,27 +94,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const reader = new FileReader();
         reader.onload = function(e) {
             const dataUrl = e.target.result;
-            
-            // Update preview images
             profilePreview.src = dataUrl;
-            profileHeader.src = dataUrl;
-            
-            // Save to localStorage
+            if (profileHeader) profileHeader.src = dataUrl;
             localStorage.setItem('profilePic', dataUrl);
-            
-            // Show success message
             showSaveSuccess();
         };
-        
         reader.readAsDataURL(file);
     });
     
-    // Handle character counter
     usernameInput.addEventListener('input', updateCounter);
     
     // Save changes
-    function saveChanges() {
-        // Validate input
+    async function saveChanges() {
         if (!usernameInput.value.trim()) {
             alert('Username cannot be empty!');
             return;
@@ -111,34 +121,43 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Update the unified user system
-        window.currentUser.username = usernameInput.value.trim();
-        
-        // Save to localStorage using the unified system
-        if (window.updateUserData) {
-            window.updateUserData();
-        } else {
-            // Fallback
-            localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-            localStorage.setItem('currentUser', JSON.stringify({
-                username: window.currentUser.username,
-                role: window.currentUser.role,
-                isLoggedIn: window.currentUser.isLoggedIn
-            }));
+        // Update in database via API
+        try {
+            const response = await fetch('api/update-profile.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: usernameInput.value.trim(),
+                    profile_pic: localStorage.getItem('profilePic') || window.currentUser.profilePic
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update local user object
+                window.currentUser.username = usernameInput.value.trim();
+                if (localStorage.getItem('profilePic')) {
+                    window.currentUser.profilePic = localStorage.getItem('profilePic');
+                }
+                
+                // Update localStorage
+                localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
+                
+                showSaveSuccess();
+            } else {
+                alert(data.message || 'Failed to update profile');
+            }
+        } catch (error) {
+            console.error('Error saving profile:', error);
+            alert('Failed to save changes. Please try again.');
         }
-        
-        // Also update profile picture separately if it exists
-        if (localStorage.getItem('profilePic')) {
-            window.currentUser.profilePic = localStorage.getItem('profilePic');
-        }
-        
-        // Show success message
-        showSaveSuccess();
     }
     
     saveBtn.addEventListener('click', saveChanges);
     
-    // Show save success message
     function showSaveSuccess() {
         saveSuccess.classList.add('active');
         setTimeout(() => {
@@ -146,11 +165,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
     
-    // Cancel button
     cancelBtn.addEventListener('click', function() {
         if (confirm('Discard all changes?')) {
-            loadUserData(); // Reload original data
-            showSaveSuccess(); // Show saved message
+            loadUserData();
         }
     });
     
@@ -169,4 +186,4 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize
     loadUserData();
-});
+}
