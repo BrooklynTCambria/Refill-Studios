@@ -9,6 +9,11 @@ let currentPostId = null;
 // POSTS MANAGEMENT
 // ============================================
 
+<<<<<<< HEAD
+=======
+// Replace these functions in updates.js
+
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
 // Load posts from database
 async function loadPosts() {
     try {
@@ -69,7 +74,11 @@ async function renderPosts() {
             <p class="post-description">${escapeHtml(post.description)}</p>
             ${imageHtml}
             <div class="post-meta">
+<<<<<<< HEAD
                 ${escapeHtml(post.author_name)} | ${escapeHtml(post.author_role)} | <span class="bold-date">${postDate}</span>
+=======
+                ${post.author_name} | ${post.author_role} | <span class="bold-date">${postDate}</span>
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
             </div>
         `;
         
@@ -81,6 +90,7 @@ async function renderPosts() {
     });
     
     // Add click events
+<<<<<<< HEAD
     const posts = document.querySelectorAll('.post');
     posts.forEach(post => {
         post.addEventListener('click', function() {
@@ -108,6 +118,113 @@ function escapeHtml(unsafe) {
 
 // Load comments from database
 async function loadCommentsFromDB(postId) {
+=======
+    setTimeout(() => {
+        const posts = document.querySelectorAll('.post');
+        posts.forEach(post => {
+            post.addEventListener('click', function() {
+                posts.forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                currentPostId = parseInt(this.getAttribute('data-post-id'));
+                loadCommentsFromDB(currentPostId);
+            });
+        });
+        
+        if (allPosts.length > 0) {
+            loadCommentsFromDB(currentPostId);
+        }
+    }, 100);
+}
+
+// Load comments from database
+async function loadCommentsFromDB(postId) {
+    const commentsList = document.getElementById('comments-list');
+    if (!commentsList) return;
+    
+    commentsList.innerHTML = '<div style="text-align: center; padding: 20px;">Loading comments...</div>';
+    
+    try {
+        const response = await fetch(`api/comments.php?post_id=${postId}`);
+        const comments = await response.json();
+        
+        commentsList.innerHTML = '';
+        
+        if (comments.length === 0) {
+            commentsList.innerHTML = '<div class="empty-comments">No comments yet. Be the first to comment!</div>';
+        } else {
+            comments.forEach(comment => {
+                const commentDate = new Date(comment.created_at).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                const commentElement = document.createElement('div');
+                commentElement.className = 'comment';
+                commentElement.innerHTML = `
+                    <div class="comment-header">
+                        <span>${comment.username} | ${commentDate} today</span>
+                        ${comment.is_dev ? '<span class="dev-badge">DEV</span>' : ''}
+                    </div>
+                    <p class="comment-text">${comment.text}</p>
+                `;
+                commentsList.appendChild(commentElement);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading comments:', error);
+        commentsList.innerHTML = '<div class="empty-comments">Error loading comments</div>';
+    }
+}
+
+// Add comment to database
+async function addCommentToDB(text) {
+    if (!text.trim()) return;
+    
+    if (!window.currentUser.isLoggedIn) {
+        alert('Please login to comment.');
+        return;
+    }
+    
+    try {
+        const response = await fetch('api/comments.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                post_id: currentPostId,
+                text: text.trim()
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await loadCommentsFromDB(currentPostId);
+            
+            const commentInput = document.getElementById('comment-input');
+            const commentForm = document.getElementById('comment-form');
+            if (commentInput) commentInput.value = '';
+            if (commentForm) commentForm.classList.remove('active');
+        } else {
+            alert(result.message || 'Failed to add comment');
+        }
+    } catch (error) {
+        console.error('Error adding comment:', error);
+        alert('Failed to add comment');
+    }
+}
+
+// Update the submit comment button event
+document.getElementById('submit-comment')?.addEventListener('click', function() {
+    const commentInput = document.getElementById('comment-input');
+    if (commentInput) {
+        addCommentToDB(commentInput.value);
+    }
+});
+
+async function loadComments(postId) {
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
     const commentsList = document.getElementById('comments-list');
     if (!commentsList) return;
     
@@ -182,6 +299,128 @@ async function addCommentToDB(text) {
     }
 }
 
+<<<<<<< HEAD
+=======
+// In the DOMContentLoaded event
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Updates page loaded - Initializing...');
+    
+    setTimeout(async () => {
+        await renderPosts(); // This now loads from database
+        setupEventListeners();
+        checkForNewPostNotification();
+        updateUIForUserRole();
+    }, 100);
+});
+
+function getAllPosts() {
+    return JSON.parse(localStorage.getItem('refillPosts') || '[]');
+}
+
+function saveAllPosts(posts) {
+    localStorage.setItem('refillPosts', JSON.stringify(posts));
+    console.log('💾 Saved all posts to localStorage:', posts.length, 'posts');
+}
+
+// ============================================
+// COMMENTS MANAGEMENT
+// ============================================
+function loadComments(postId) {
+    const commentsList = document.getElementById('comments-list');
+    if (!commentsList) return;
+    
+    commentsList.innerHTML = '';
+    
+    // Get comments directly from the post in localStorage
+    const allPosts = getAllPosts();
+    const post = allPosts.find(p => p.id === postId);
+    
+    const comments = post?.comments || [];
+    
+    if (comments.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-comments';
+        emptyDiv.textContent = 'No comments yet. Be the first to comment!';
+        commentsList.appendChild(emptyDiv);
+    } else {
+        comments.forEach(comment => {
+            const commentElement = document.createElement('div');
+            commentElement.className = 'comment';
+            
+            const commentHeader = document.createElement('div');
+            commentHeader.className = 'comment-header';
+            commentHeader.innerHTML = `
+                <span>${comment.username} | ${comment.date}</span>
+                ${comment.isDev ? '<span class="dev-badge">DEV</span>' : ''}
+            `;
+            
+            const commentText = document.createElement('p');
+            commentText.className = 'comment-text';
+            commentText.textContent = comment.text;
+            
+            commentElement.appendChild(commentHeader);
+            commentElement.appendChild(commentText);
+            commentsList.appendChild(commentElement);
+        });
+    }
+    
+    commentsList.scrollTop = 0;
+}
+
+function addComment(text) {
+    if (!text.trim()) return;
+    
+    // Make sure we have the latest user data
+    refreshUserData();
+    
+    // Create new comment
+    const newComment = {
+        username: window.currentUser.username,
+        isDev: window.currentUser.role === 'developer' || window.currentUser.role === 'admin',
+        date: getCurrentTime(),
+        text: text.trim()
+    };
+    
+    // Get all posts
+    const allPosts = getAllPosts();
+    
+    // Find the current post
+    const postIndex = allPosts.findIndex(p => p.id === currentPostId);
+    
+    if (postIndex !== -1) {
+        // Initialize comments array if it doesn't exist
+        if (!allPosts[postIndex].comments) {
+            allPosts[postIndex].comments = [];
+        }
+        
+        // Add new comment to the beginning
+        allPosts[postIndex].comments.unshift(newComment);
+        
+        // Save ALL posts back to localStorage
+        saveAllPosts(allPosts);
+        
+        console.log('💬 Comment saved! Total comments:', allPosts[postIndex].comments.length);
+        
+        // Reload comments to show the new one
+        loadComments(currentPostId);
+        
+        // Clear input and hide form
+        const commentInput = document.getElementById('comment-input');
+        const commentForm = document.getElementById('comment-form');
+        
+        if (commentInput) commentInput.value = '';
+        if (commentForm) commentForm.classList.remove('active');
+    } else {
+        console.error('❌ Post not found for comment');
+    }
+}
+
+function getCurrentTime() {
+    const now = new Date();
+    return now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + ' today';
+}
+
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
 // ============================================
 // IMAGE MODAL FUNCTIONALITY
 // ============================================

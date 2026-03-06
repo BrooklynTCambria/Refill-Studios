@@ -6,6 +6,7 @@ function createUniversalHeader() {
     const rightSection = header.querySelector('.right');
     if (!rightSection) return;
     
+<<<<<<< HEAD
     // Make sure we have the latest user data
     const currentUser = window.currentUser || {
         username: 'Guest',
@@ -14,6 +15,8 @@ function createUniversalHeader() {
         profilePic: 'images/account.png'
     };
     
+=======
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
     // Get notification setting
     const notifyNewPosts = localStorage.getItem('notifyNewPosts') !== 'false';
     
@@ -64,6 +67,7 @@ function createUniversalHeader() {
                     </div>
                 </div>
             </div>
+<<<<<<< HEAD
         `;
     } else {
         // Guest dropdown (login option only)
@@ -79,6 +83,53 @@ function createUniversalHeader() {
                         <span>Login / Register</span>
                     </div>
                 </div>
+=======
+            <div class="dropdown-content" id="dropdown-content">
+                ${window.currentUser.isLoggedIn ? `
+                <div class="account-info-display">
+                    <div class="account-info-item">
+                        <span class="info-label">User:</span>
+                        <span class="info-value">${window.currentUser.username}</span>
+                    </div>
+                    <div class="account-info-item">
+                        <span class="info-label">Role:</span>
+                        <span class="info-value">${window.currentUser.role}</span>
+                    </div>
+                    <div class="account-info-item">
+                        <span class="info-label">Status:</span>
+                        <span class="info-value">Logged In</span>
+                    </div>
+                </div>
+                
+                <div class="notification-toggle">
+                    <div class="notification-text">
+                        <span class="dropdown-icon">🔔</span>
+                        <span>New Post Alerts</span>
+                    </div>
+                    <label class="toggle-switch-small">
+                        <input type="checkbox" id="notify-toggle" ${notifyNewPosts ? 'checked' : ''}>
+                        <span class="toggle-slider-small"></span>
+                    </label>
+                </div>
+                
+                <div class="dropdown-item" id="settings-item">
+                    <span class="dropdown-icon">⚙️</span>
+                    <span>Account Settings</span>
+                </div>
+                
+                <div class="dropdown-divider"></div>
+                
+                <div class="dropdown-item" id="logout-item">
+                    <span class="dropdown-icon">🚪</span>
+                    <span>Logout</span>
+                </div>
+                ` : `
+                <div class="dropdown-item" id="login-item">
+                    <span class="dropdown-icon">🔑</span>
+                    <span>Login / Register</span>
+                </div>
+                `}
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
             </div>
         `;
     }
@@ -112,7 +163,11 @@ function setupDropdownEvents() {
                 break;
                 
             case 'settings-item':
+<<<<<<< HEAD
                 if (window.currentUser && window.currentUser.isLoggedIn) {
+=======
+                if (window.currentUser.isLoggedIn) {
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
                     window.location.href = 'account-settings.html';
                 }
                 break;
@@ -149,8 +204,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Wait for user system to initialize
     setTimeout(() => {
         createUniversalHeader();
+<<<<<<< HEAD
     }, 200);
 });
 
 // Also update header when user logs in/out
 window.updateHeader = createUniversalHeader;
+=======
+    }, 100);
+});
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7

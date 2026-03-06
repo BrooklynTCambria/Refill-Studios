@@ -1,6 +1,9 @@
 // user-system.js - Unified User System with PHP Backend
+<<<<<<< HEAD
 
 // Initialize user object
+=======
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
 window.currentUser = {
     username: 'Guest',
     role: 'user',
@@ -25,6 +28,7 @@ async function initializeUserSystem() {
             localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
             console.log('User logged in from session:', window.currentUser);
         } else {
+<<<<<<< HEAD
             // No session, set to guest
             window.currentUser = {
                 username: 'Guest',
@@ -35,6 +39,16 @@ async function initializeUserSystem() {
             // Clear any old localStorage data
             localStorage.removeItem('refillUser');
             console.log('No user logged in, set to Guest');
+=======
+            // Fallback to localStorage
+            const savedUser = JSON.parse(localStorage.getItem('refillUser'));
+            if (savedUser && savedUser.isLoggedIn) {
+                window.currentUser = savedUser;
+                console.log('Using saved user from localStorage:', window.currentUser);
+            } else {
+                console.log('No user logged in');
+            }
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
         }
     } catch (error) {
         console.error('Error checking session:', error);
@@ -78,18 +92,25 @@ async function loginUser(username, password) {
             // Update UI
             updateUserUI();
             
+<<<<<<< HEAD
             // Trigger header update
             if (window.createUniversalHeader) {
                 window.createUniversalHeader();
             }
             
+=======
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
             return { success: true, user: window.currentUser };
         } else {
             return { success: false, message: data.message };
         }
     } catch (error) {
         console.error('Login error:', error);
+<<<<<<< HEAD
         return { success: false, message: 'Connection error. Please try again.' };
+=======
+        return { success: false, message: 'Connection error' };
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
     }
 }
 
@@ -117,6 +138,7 @@ async function logoutUser() {
     // Update UI
     updateUserUI();
     
+<<<<<<< HEAD
     // Trigger header update
     if (window.createUniversalHeader) {
         window.createUniversalHeader();
@@ -147,6 +169,49 @@ function updateUserUI() {
     const adminAddPost = document.getElementById('admin-add-post');
     if (adminAddPost) {
         if (window.currentUser.isLoggedIn && (window.currentUser.role === 'admin' || window.currentUser.role === 'developer')) {
+            adminAddPost.style.display = 'flex';
+        } else {
+            adminAddPost.style.display = 'none';
+        }
+=======
+    // Redirect based on current page
+    const currentPage = window.location.pathname;
+    if (currentPage.includes('updates.html')) {
+        window.location.reload();
+    } else {
+        window.location.href = 'updates.html';
+    }
+}
+
+// Update UI elements
+function updateUserUI() {
+    // Update account link text in dropdown
+    const accountLink = document.getElementById('account-link-text');
+    if (accountLink) {
+        accountLink.textContent = window.currentUser.username;
+    }
+    
+    // Update profile picture
+    const profilePic = document.getElementById('profile-pic-header');
+    if (profilePic) {
+        profilePic.src = window.currentUser.profilePic;
+>>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
+    }
+    
+    // Update any other user-dependent UI elements
+    const userRoleIndicator = document.getElementById('user-role-indicator');
+    if (userRoleIndicator) {
+        if (window.currentUser.isLoggedIn) {
+            userRoleIndicator.textContent = `Welcome, ${window.currentUser.username}! (${window.currentUser.role.toUpperCase()})`;
+        } else {
+            userRoleIndicator.textContent = 'Welcome, Guest!';
+        }
+    }
+    
+    // Show/hide admin buttons
+    const adminAddPost = document.getElementById('admin-add-post');
+    if (adminAddPost) {
+        if (window.currentUser.role === 'admin' || window.currentUser.role === 'developer') {
             adminAddPost.style.display = 'flex';
         } else {
             adminAddPost.style.display = 'none';
