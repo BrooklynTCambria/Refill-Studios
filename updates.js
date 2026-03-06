@@ -1,64 +1,13 @@
 // ============================================
-// UPDATES PAGE - MAIN SCRIPT (With User Sync)
+// UPDATES PAGE - MAIN SCRIPT
 // ============================================
 
 // Global variables
 let currentPostId = null;
 
 // ============================================
-// USER MANAGEMENT - REFRESH USER DATA
-// ============================================
-function refreshUserData() {
-    // Check both possible storage locations
-    const refillUser = JSON.parse(localStorage.getItem('refillUser'));
-    const accountUser = JSON.parse(localStorage.getItem('currentUser'));
-    
-    // Update window.currentUser with the latest data
-    if (refillUser) {
-        window.currentUser = {
-            ...window.currentUser,
-            ...refillUser,
-            isLoggedIn: true
-        };
-        console.log('Updated user from refillUser:', window.currentUser);
-    } else if (accountUser) {
-        window.currentUser = {
-            username: accountUser.username || 'Guest',
-            role: accountUser.role || 'user',
-            isLoggedIn: true,
-            profilePic: localStorage.getItem('profilePic') || 'images/account.png'
-        };
-        console.log('Updated user from currentUser:', window.currentUser);
-    } else {
-        window.currentUser = {
-            username: 'Guest',
-            role: 'user',
-            isLoggedIn: false,
-            profilePic: 'images/account.png'
-        };
-        console.log('No user found, set to Guest');
-    }
-    
-    // Save back to refillUser for consistency
-    localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-    
-    // Force header to update
-    if (window.createUniversalHeader) {
-        window.createUniversalHeader();
-    }
-    
-    // Update UI elements that depend on user role
-    updateUIForUserRole();
-    
-    return window.currentUser;
-}
-
-// ============================================
 // POSTS MANAGEMENT
 // ============================================
-// Replace these functions in updates.js
-
-// Replace these functions in updates.js
 
 // Load posts from database
 async function loadPosts() {
@@ -116,11 +65,11 @@ async function renderPosts() {
         });
         
         postElement.innerHTML = `
-            <h3 class="post-header">${post.header}</h3>
-            <p class="post-description">${post.description}</p>
+            <h3 class="post-header">${escapeHtml(post.header)}</h3>
+            <p class="post-description">${escapeHtml(post.description)}</p>
             ${imageHtml}
             <div class="post-meta">
-                ${post.author_name} | ${post.author_role} | <span class="bold-date">${postDate}</span>
+                ${escapeHtml(post.author_name)} | ${escapeHtml(post.author_role)} | <span class="bold-date">${postDate}</span>
             </div>
         `;
         
@@ -132,21 +81,29 @@ async function renderPosts() {
     });
     
     // Add click events
-    setTimeout(() => {
-        const posts = document.querySelectorAll('.post');
-        posts.forEach(post => {
-            post.addEventListener('click', function() {
-                posts.forEach(p => p.classList.remove('active'));
-                this.classList.add('active');
-                currentPostId = parseInt(this.getAttribute('data-post-id'));
-                loadCommentsFromDB(currentPostId);
-            });
-        });
-        
-        if (allPosts.length > 0) {
+    const posts = document.querySelectorAll('.post');
+    posts.forEach(post => {
+        post.addEventListener('click', function() {
+            posts.forEach(p => p.classList.remove('active'));
+            this.classList.add('active');
+            currentPostId = parseInt(this.getAttribute('data-post-id'));
             loadCommentsFromDB(currentPostId);
-        }
-    }, 100);
+        });
+    });
+    
+    if (allPosts.length > 0) {
+        loadCommentsFromDB(currentPostId);
+    }
+}
+
+// Helper function to escape HTML
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 // Load comments from database
@@ -166,19 +123,16 @@ async function loadCommentsFromDB(postId) {
             commentsList.innerHTML = '<div class="empty-comments">No comments yet. Be the first to comment!</div>';
         } else {
             comments.forEach(comment => {
-                const commentDate = new Date(comment.created_at).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                const commentDate = new Date(comment.created_at).toLocaleString();
                 
                 const commentElement = document.createElement('div');
                 commentElement.className = 'comment';
                 commentElement.innerHTML = `
                     <div class="comment-header">
-                        <span>${comment.username} | ${commentDate} today</span>
+                        <span>${escapeHtml(comment.username)} | ${commentDate}</span>
                         ${comment.is_dev ? '<span class="dev-badge">DEV</span>' : ''}
                     </div>
-                    <p class="comment-text">${comment.text}</p>
+                    <p class="comment-text">${escapeHtml(comment.text)}</p>
                 `;
                 commentsList.appendChild(commentElement);
             });
@@ -193,7 +147,7 @@ async function loadCommentsFromDB(postId) {
 async function addCommentToDB(text) {
     if (!text.trim()) return;
     
-    if (!window.currentUser.isLoggedIn) {
+    if (!window.currentUser || !window.currentUser.isLoggedIn) {
         alert('Please login to comment.');
         return;
     }
@@ -228,205 +182,6 @@ async function addCommentToDB(text) {
     }
 }
 
-// Update the submit comment button event
-document.getElementById('submit-comment')?.addEventListener('click', function() {
-    const commentInput = document.getElementById('comment-input');
-    if (commentInput) {
-        addCommentToDB(commentInput.value);
-    }
-});
-
-async function loadComments(postId) {
-    const commentsList = document.getElementById('comments-list');
-    if (!commentsList) return;
-    
-    commentsList.innerHTML = '';
-    
-    try {
-        const response = await fetch(`api/comments.php?post_id=${postId}`);
-        const comments = await response.json();
-        
-        if (comments.length === 0) {
-            commentsList.innerHTML = '<div class="empty-comments">No comments yet. Be the first to comment!</div>';
-        } else {
-            comments.forEach(comment => {
-                const commentElement = document.createElement('div');
-                commentElement.className = 'comment';
-                commentElement.innerHTML = `
-                    <div class="comment-header">
-                        <span>${comment.username} | ${new Date(comment.created_at).toLocaleTimeString()} today</span>
-                        ${comment.is_dev ? '<span class="dev-badge">DEV</span>' : ''}
-                    </div>
-                    <p class="comment-text">${comment.text}</p>
-                `;
-                commentsList.appendChild(commentElement);
-            });
-        }
-    } catch (error) {
-        console.error('Error loading comments:', error);
-        commentsList.innerHTML = '<div class="empty-comments">Error loading comments</div>';
-    }
-}
-
-async function addComment(text) {
-    if (!text.trim()) return;
-    
-    if (!window.currentUser.isLoggedIn) {
-        alert('Please login to comment.');
-        return;
-    }
-    
-    try {
-        const response = await fetch('api/comments.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                post_id: currentPostId,
-                text: text.trim()
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Reload comments
-            await loadComments(currentPostId);
-            
-            // Clear form
-            const commentInput = document.getElementById('comment-input');
-            const commentForm = document.getElementById('comment-form');
-            if (commentInput) commentInput.value = '';
-            if (commentForm) commentForm.classList.remove('active');
-        } else {
-            alert(result.message || 'Failed to add comment');
-        }
-    } catch (error) {
-        console.error('Error adding comment:', error);
-        alert('Failed to add comment');
-    }
-}
-
-// In the DOMContentLoaded event
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Updates page loaded - Initializing...');
-    
-    setTimeout(async () => {
-        await renderPosts(); // This now loads from database
-        setupEventListeners();
-        checkForNewPostNotification();
-        updateUIForUserRole();
-    }, 100);
-});
-
-function getAllPosts() {
-    return JSON.parse(localStorage.getItem('refillPosts') || '[]');
-}
-
-function saveAllPosts(posts) {
-    localStorage.setItem('refillPosts', JSON.stringify(posts));
-    console.log('💾 Saved all posts to localStorage:', posts.length, 'posts');
-}
-
-// ============================================
-// COMMENTS MANAGEMENT
-// ============================================
-function loadComments(postId) {
-    const commentsList = document.getElementById('comments-list');
-    if (!commentsList) return;
-    
-    commentsList.innerHTML = '';
-    
-    // Get comments directly from the post in localStorage
-    const allPosts = getAllPosts();
-    const post = allPosts.find(p => p.id === postId);
-    
-    const comments = post?.comments || [];
-    
-    if (comments.length === 0) {
-        const emptyDiv = document.createElement('div');
-        emptyDiv.className = 'empty-comments';
-        emptyDiv.textContent = 'No comments yet. Be the first to comment!';
-        commentsList.appendChild(emptyDiv);
-    } else {
-        comments.forEach(comment => {
-            const commentElement = document.createElement('div');
-            commentElement.className = 'comment';
-            
-            const commentHeader = document.createElement('div');
-            commentHeader.className = 'comment-header';
-            commentHeader.innerHTML = `
-                <span>${comment.username} | ${comment.date}</span>
-                ${comment.isDev ? '<span class="dev-badge">DEV</span>' : ''}
-            `;
-            
-            const commentText = document.createElement('p');
-            commentText.className = 'comment-text';
-            commentText.textContent = comment.text;
-            
-            commentElement.appendChild(commentHeader);
-            commentElement.appendChild(commentText);
-            commentsList.appendChild(commentElement);
-        });
-    }
-    
-    commentsList.scrollTop = 0;
-}
-
-function addComment(text) {
-    if (!text.trim()) return;
-    
-    // Make sure we have the latest user data
-    refreshUserData();
-    
-    // Create new comment
-    const newComment = {
-        username: window.currentUser.username,
-        isDev: window.currentUser.role === 'developer' || window.currentUser.role === 'admin',
-        date: getCurrentTime(),
-        text: text.trim()
-    };
-    
-    // Get all posts
-    const allPosts = getAllPosts();
-    
-    // Find the current post
-    const postIndex = allPosts.findIndex(p => p.id === currentPostId);
-    
-    if (postIndex !== -1) {
-        // Initialize comments array if it doesn't exist
-        if (!allPosts[postIndex].comments) {
-            allPosts[postIndex].comments = [];
-        }
-        
-        // Add new comment to the beginning
-        allPosts[postIndex].comments.unshift(newComment);
-        
-        // Save ALL posts back to localStorage
-        saveAllPosts(allPosts);
-        
-        console.log('💬 Comment saved! Total comments:', allPosts[postIndex].comments.length);
-        
-        // Reload comments to show the new one
-        loadComments(currentPostId);
-        
-        // Clear input and hide form
-        const commentInput = document.getElementById('comment-input');
-        const commentForm = document.getElementById('comment-form');
-        
-        if (commentInput) commentInput.value = '';
-        if (commentForm) commentForm.classList.remove('active');
-    } else {
-        console.error('❌ Post not found for comment');
-    }
-}
-
-function getCurrentTime() {
-    const now = new Date();
-    return now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + ' today';
-}
-
 // ============================================
 // IMAGE MODAL FUNCTIONALITY
 // ============================================
@@ -450,56 +205,8 @@ function closeImageModal() {
 }
 
 // ============================================
-// NOTIFICATION SYSTEM
+// UI UPDATE FUNCTIONS
 // ============================================
-function checkForNewPostNotification() {
-    const newPostAdded = sessionStorage.getItem('newPostAdded');
-    if (newPostAdded === 'true') {
-        const latestPost = JSON.parse(sessionStorage.getItem('latestPost') || '{}');
-        
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #2d4a2d;
-            color: #a3d9a3;
-            padding: 15px 20px;
-            border-radius: 5px;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            animation: slideIn 0.3s ease;
-        `;
-        notification.innerHTML = `
-            <strong>✓ New post published!</strong><br>
-            "${latestPost.header || 'New Post'}"
-        `;
-        document.body.appendChild(notification);
-        
-        // Add CSS for animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transition = 'opacity 0.3s ease';
-            setTimeout(() => {
-                notification.remove();
-                style.remove();
-            }, 300);
-        }, 5000);
-        
-        sessionStorage.removeItem('newPostAdded');
-        sessionStorage.removeItem('latestPost');
-    }
-}
-
 function updateUIForUserRole() {
     const userRoleIndicator = document.getElementById('user-role-indicator');
     const userRoleNote = document.getElementById('user-role-note');
@@ -507,28 +214,29 @@ function updateUIForUserRole() {
     
     // Update role indicator
     if (userRoleIndicator) {
-        let roleText = '';
-        let roleClass = 'user-role-indicator';
-        
-        switch(window.currentUser.role) {
-            case 'admin':
-                roleText = `Welcome, ${window.currentUser.username}! (ADMIN)`;
+        if (window.currentUser && window.currentUser.isLoggedIn) {
+            let roleText = `Welcome, ${window.currentUser.username}!`;
+            let roleClass = 'user-role-indicator';
+            
+            if (window.currentUser.role === 'admin') {
+                roleText += ' (ADMIN)';
                 roleClass += ' admin-badge';
-                break;
-            case 'developer':
-                roleText = `Welcome, ${window.currentUser.username}! (DEVELOPER)`;
-                break;
-            default:
-                roleText = `Welcome, ${window.currentUser.username}!`;
+            } else if (window.currentUser.role === 'developer') {
+                roleText += ' (DEVELOPER)';
+            }
+            
+            userRoleIndicator.textContent = roleText;
+            userRoleIndicator.className = roleClass;
+        } else {
+            userRoleIndicator.textContent = 'Welcome, Guest!';
+            userRoleIndicator.className = 'user-role-indicator';
         }
-        
-        userRoleIndicator.textContent = roleText;
-        userRoleIndicator.className = roleClass;
     }
     
     // Update note
     if (userRoleNote) {
-        if (window.currentUser.role === 'admin' || window.currentUser.role === 'developer') {
+        if (window.currentUser && window.currentUser.isLoggedIn && 
+            (window.currentUser.role === 'admin' || window.currentUser.role === 'developer')) {
             userRoleNote.innerHTML = `Click on a post to view and add comments. <span style="color:#ffcc00;">You can create new posts.</span>`;
         } else {
             userRoleNote.textContent = 'Click on a post to view and add comments.';
@@ -537,7 +245,8 @@ function updateUIForUserRole() {
     
     // Show/hide admin add post button
     if (adminAddBtn) {
-        if (window.currentUser.role === 'admin' || window.currentUser.role === 'developer') {
+        if (window.currentUser && window.currentUser.isLoggedIn && 
+            (window.currentUser.role === 'admin' || window.currentUser.role === 'developer')) {
             adminAddBtn.style.display = 'flex';
         } else {
             adminAddBtn.style.display = 'none';
@@ -576,11 +285,8 @@ function setupEventListeners() {
     const adminAddBtn = document.getElementById('admin-add-post');
     if (adminAddBtn) {
         adminAddBtn.addEventListener('click', () => {
-            // Make sure we have the latest user data
-            refreshUserData();
-            
-            // Check if user is admin or developer
-            if (window.currentUser.role === 'admin' || window.currentUser.role === 'developer') {
+            if (window.currentUser && window.currentUser.isLoggedIn && 
+                (window.currentUser.role === 'admin' || window.currentUser.role === 'developer')) {
                 window.location.href = 'create-post.html';
             } else {
                 alert('Only admins and developers can create posts.');
@@ -597,10 +303,7 @@ function setupEventListeners() {
     
     if (addCommentBtn) {
         addCommentBtn.addEventListener('click', () => {
-            // Make sure we have the latest user data
-            refreshUserData();
-            
-            if (!window.currentUser.isLoggedIn) {
+            if (!window.currentUser || !window.currentUser.isLoggedIn) {
                 alert('Please login to comment.');
                 return;
             }
@@ -623,10 +326,7 @@ function setupEventListeners() {
     
     if (submitCommentBtn) {
         submitCommentBtn.addEventListener('click', () => {
-            // Make sure we have the latest user data
-            refreshUserData();
-            
-            if (!window.currentUser.isLoggedIn) {
+            if (!window.currentUser || !window.currentUser.isLoggedIn) {
                 alert('Please login to comment.');
                 return;
             }
@@ -634,7 +334,7 @@ function setupEventListeners() {
             if (commentInput) {
                 const commentText = commentInput.value.trim();
                 if (commentText) {
-                    addComment(commentText);
+                    addCommentToDB(commentText);
                 } else {
                     alert('Please enter a comment.');
                 }
@@ -647,7 +347,7 @@ function setupEventListeners() {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 const commentText = commentInput.value.trim();
                 if (commentText) {
-                    addComment(commentText);
+                    addCommentToDB(commentText);
                 }
             }
         });
@@ -662,7 +362,6 @@ function setupEventListeners() {
             }
         });
         
-        // Close modal with escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && imageModal.classList.contains('active')) {
                 closeImageModal();
@@ -672,65 +371,22 @@ function setupEventListeners() {
 }
 
 // ============================================
-// DEBUG FUNCTIONS
-// ============================================
-function debugLocalStorage() {
-    console.log('=== DEBUG LOCALSTORAGE ===');
-    const posts = getAllPosts();
-    console.log('Total posts:', posts.length);
-    
-    posts.forEach((post, i) => {
-        console.log(`Post ${i + 1}: "${post.header}"`);
-        console.log(`  ID: ${post.id}`);
-        console.log(`  Comments: ${post.comments ? post.comments.length : 0}`);
-        if (post.comments && post.comments.length > 0) {
-            post.comments.forEach((comment, ci) => {
-                console.log(`    ${ci + 1}. ${comment.username}: ${comment.text}`);
-            });
-        }
-    });
-    
-    // Show current user
-    console.log('Current User:', window.currentUser);
-    console.log('refillUser:', JSON.parse(localStorage.getItem('refillUser')));
-    console.log('currentUser:', JSON.parse(localStorage.getItem('currentUser')));
-    console.log('==========================');
-}
-
-// ============================================
 // INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Updates page loaded - Initializing...');
     
-    // Refresh user data immediately
-    refreshUserData();
-    
-    // Small delay to ensure everything is loaded
-    setTimeout(() => {
-        renderPosts();
+    // Wait for user system to initialize
+    setTimeout(async () => {
+        await renderPosts();
         setupEventListeners();
-        checkForNewPostNotification();
         updateUIForUserRole();
-        
-        // Debug
-        debugLocalStorage();
-    }, 100);
+    }, 300);
 });
 
-// Also refresh when the page becomes visible (in case user logged in in another tab)
-document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-        console.log('Page became visible, refreshing user data...');
-        refreshUserData();
-        updateUIForUserRole();
-    }
-});
-
-// Make functions available globally for onclick attributes
+// Make functions global
 window.openImageModal = openImageModal;
 window.closeImageModal = closeImageModal;
-window.refreshUserData = refreshUserData;
 
 // ============================================
 // INTEGRATED ACCOUNT DROPDOWN WITH LOGIN
