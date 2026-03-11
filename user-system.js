@@ -59,7 +59,6 @@ function updateUserData() {
     }));
 }
 
-
 // Login function
 function loginUser(username, role = 'user') {
     window.currentUser = {
