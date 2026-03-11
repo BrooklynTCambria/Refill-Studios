@@ -1,4 +1,6 @@
-// user-system.js - Updated to use PHP backend
+// user-system.js - Unified User System for All Pages
+
+// Global user object
 window.currentUser = {
     username: 'Guest',
     role: 'user',
@@ -6,86 +8,76 @@ window.currentUser = {
     profilePic: 'images/account.png'
 };
 
-// Check session on page load
-async function initializeUserSystem() {
-    try {
-        const response = await fetch('api/check-session.php');
-        const data = await response.json();
-        
-        if (data.loggedIn) {
-            window.currentUser = {
-                username: data.user.username,
-                role: data.user.role,
-                isLoggedIn: true,
-                profilePic: data.user.profile_pic || 'images/account.png'
-            };
-            localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-        } else {
-            // Fallback to localStorage
-            const savedUser = JSON.parse(localStorage.getItem('refillUser'));
-            if (savedUser) {
-                window.currentUser = savedUser;
-            }
-        }
-    } catch (error) {
-        console.error('Error checking session:', error);
-        // Fallback to localStorage
-        const savedUser = JSON.parse(localStorage.getItem('refillUser'));
-        if (savedUser) {
-            window.currentUser = savedUser;
-        }
+// Initialize user system on any page
+function initializeUserSystem() {
+    // First check refillUser (updates page system)
+    const refillUser = JSON.parse(localStorage.getItem('refillUser'));
+    
+    // Then check currentUser (account system)
+    const accountUser = JSON.parse(localStorage.getItem('currentUser'));
+    
+    // Priority: refillUser has the full data structure
+    if (refillUser) {
+        Object.assign(window.currentUser, refillUser);
+        console.log('Loaded user from refillUser:', window.currentUser);
+    } 
+    // Fallback: currentUser (from account system)
+    else if (accountUser) {
+        window.currentUser = {
+            username: accountUser.username || 'User',
+            role: accountUser.role || 'user',
+            isLoggedIn: accountUser.isLoggedIn !== undefined ? accountUser.isLoggedIn : true,
+            profilePic: localStorage.getItem('profilePic') || 'images/account.png'
+        };
+        // Save to refillUser for consistency
+        localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
+        console.log('Loaded user from currentUser:', window.currentUser);
+    }
+    // Default guest user
+    else {
+        window.currentUser = {
+            username: 'Guest',
+            role: 'user',
+            isLoggedIn: false,
+            profilePic: 'images/account.png'
+        };
+        localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
+        console.log('Default guest user loaded');
     }
     
+    // Update UI if possible
     updateUserUI();
 }
 
+// Update user information in localStorage
+function updateUserData() {
+    localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
+    localStorage.setItem('currentUser', JSON.stringify({
+        username: window.currentUser.username,
+        role: window.currentUser.role,
+        isLoggedIn: window.currentUser.isLoggedIn
+    }));
+}
+
+
 // Login function
-async function loginUser(username, password) {
-    try {
-        const response = await fetch('api/login.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, password })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            window.currentUser = {
-                username: data.user.username,
-                role: data.user.role,
-                isLoggedIn: true,
-                profilePic: data.user.profile_pic || 'images/account.png'
-            };
-            
-            localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-            updateUserUI();
-            
-            // Redirect to updates page
-            window.location.href = 'updates.html';
-            
-            return { success: true };
-        } else {
-            alert(data.message || 'Login failed');
-            return { success: false };
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        alert('Connection error');
-        return { success: false };
-    }
+function loginUser(username, role = 'user') {
+    window.currentUser = {
+        username: username,
+        role: role,
+        isLoggedIn: true,
+        profilePic: localStorage.getItem('profilePic') || 'images/account.png'
+    };
+    
+    updateUserData();
+    console.log('User logged in:', window.currentUser);
+    
+    // Update UI
+    updateUserUI();
 }
 
 // Logout function
-async function logoutUser() {
-    try {
-        await fetch('api/logout.php');
-    } catch (error) {
-        console.error('Logout error:', error);
-    }
-    
+function logoutUser() {
     window.currentUser = {
         username: 'Guest',
         role: 'user',
@@ -93,31 +85,55 @@ async function logoutUser() {
         profilePic: 'images/account.png'
     };
     
-    localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
+    updateUserData();
+    console.log('User logged out');
+    
+    // Update UI
     updateUserUI();
     
-    window.location.href = 'updates.html';
+    // Reload or redirect
+    if (window.location.pathname.includes('updates.html')) {
+        window.location.reload();
+    } else {
+        window.location.href = 'updates.html';
+    }
 }
 
-// Update UI
+// Update UI based on user state
 function updateUserUI() {
-    const accountLink = document.getElementById('account-link-text');
+    // Update account link text if it exists
+    const accountLink = document.getElementById('account-link-text') || document.getElementById('account-link');
     if (accountLink) {
         accountLink.textContent = window.currentUser.username;
     }
     
-    const profilePic = document.getElementById('profile-pic-header');
-    if (profilePic) {
+    // Update profile picture if it exists
+    const profilePic = document.getElementById('profile-pic-header') || 
+                      document.querySelector('.profile-pic-small') ||
+                      document.querySelector('.account-icon');
+    if (profilePic && window.currentUser.profilePic) {
         profilePic.src = window.currentUser.profilePic;
     }
+}
+
+// Check if user is logged in
+function isLoggedIn() {
+    return window.currentUser.isLoggedIn;
+}
+
+// Get current user
+function getCurrentUser() {
+    return window.currentUser;
 }
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     initializeUserSystem();
+    console.log('User system initialized:', window.currentUser);
 });
 
-// Make functions global
+// Make functions available globally
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
-window.getCurrentUser = () => window.currentUser;
+window.isLoggedIn = isLoggedIn;
+window.getCurrentUser = getCurrentUser;
