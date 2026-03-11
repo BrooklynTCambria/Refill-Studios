@@ -10,7 +10,14 @@ window.currentUser = {
 
 // Initialize user system on any page
 async function initializeUserSystem() {
-    fetch("/api/get_user_session.php");
+    fetch("/api/get_user_session.php")
+    .then(response => response.json())
+    .then(data => {
+        console.log(data);
+    })
+    .catch(error => {
+        console.error("Error:", error);
+    });
     
     // Update UI if possible
     updateUserUI();
