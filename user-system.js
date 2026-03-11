@@ -9,41 +9,8 @@ window.currentUser = {
 };
 
 // Initialize user system on any page
-function initializeUserSystem() {
-    // First check refillUser (updates page system)
-    const refillUser = JSON.parse(localStorage.getItem('refillUser'));
-    
-    // Then check currentUser (account system)
-    const accountUser = JSON.parse(localStorage.getItem('currentUser'));
-    
-    // Priority: refillUser has the full data structure
-    if (refillUser) {
-        Object.assign(window.currentUser, refillUser);
-        console.log('Loaded user from refillUser:', window.currentUser);
-    } 
-    // Fallback: currentUser (from account system)
-    else if (accountUser) {
-        window.currentUser = {
-            username: accountUser.username || 'User',
-            role: accountUser.role || 'user',
-            isLoggedIn: accountUser.isLoggedIn !== undefined ? accountUser.isLoggedIn : true,
-            profilePic: localStorage.getItem('profilePic') || 'images/account.png'
-        };
-        // Save to refillUser for consistency
-        localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-        console.log('Loaded user from currentUser:', window.currentUser);
-    }
-    // Default guest user
-    else {
-        window.currentUser = {
-            username: 'Guest',
-            role: 'user',
-            isLoggedIn: false,
-            profilePic: 'images/account.png'
-        };
-        localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-        console.log('Default guest user loaded');
-    }
+async function initializeUserSystem() {
+    fetch("/api/get_user_session.php");
     
     // Update UI if possible
     updateUserUI();
