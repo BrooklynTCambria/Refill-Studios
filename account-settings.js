@@ -1,172 +1,287 @@
-// Simple Account Settings Page JavaScript
+// Account Manager - Integrated with PHP Backend
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if user is logged in
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser) {
-        alert('Please login first');
-        window.location.href = 'account.html';
+function getCurrentPage() {
+    let path = window.location.pathname;
+    let page = path.split("/").pop(); 
+    
+    if (page === "register.html") return "Register";
+    if (page === "account.html") return "Account";
+    if (page === "updates.html") return "Updates";
+    if (page === "account-settings.html") return "Settings";
+    return "";
+}
+
+function account() {
+    if (getCurrentPage() === "Account") {
+        console.log("Already on account page, not refreshing");
+        return;
+    }
+    console.log("Navigating to account page");
+    window.location.href = "account.html";
+}
+
+function signUp() {
+    if (getCurrentPage() === "Register") {
+        console.log("Already on register page, not refreshing");
         return;
     }
     
-    // Check if user is logged in using the unified system
-    if (!window.currentUser || !window.currentUser.isLoggedIn) {
-        alert('Please login first');
-        window.location.href = 'account.html';
-        return;
-    }
-    
-    // Load user data from the unified system
-    const userData = {
-        username: window.currentUser.username || 'Guest',
-        profilePic: window.currentUser.profilePic || 'images/account.png'
-    };
-    
-    // DOM Elements
-    const profilePreview = document.getElementById('profile-preview-large');
-    const profileHeader = document.getElementById('profile-pic-header');
-    const uploadBtn = document.getElementById('upload-profile-btn');
-    const profileUpload = document.getElementById('profile-upload');
+    console.log("Navigating to register page");
+    window.location.href = "register.html";
+}
+
+// Handle login form submission
+async function handleLogin() {
     const usernameInput = document.getElementById('username-input');
-    const usernameCounter = document.getElementById('username-counter');
-    const saveBtn = document.getElementById('save-btn');
-    const cancelBtn = document.getElementById('cancel-btn');
-    const saveSuccess = document.getElementById('save-success');
+    const passwordInput = document.getElementById('password-input');
     
-    // Load user data into form
-    function loadUserData() {
-        profilePreview.src = userData.profilePic;
-        profileHeader.src = userData.profilePic;
-        usernameInput.value = userData.username;
-        updateCounter();
+    if (!usernameInput || !passwordInput) {
+        console.error('Login inputs not found');
+        return;
     }
     
-    // Update character counter
-    function updateCounter() {
-        usernameCounter.textContent = `${usernameInput.value.length}/20`;
-        usernameCounter.className = 'char-counter';
-        
-        if (usernameInput.value.length > 18) {
-            usernameCounter.classList.add('warning');
-        }
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+    
+    if (!username || !password) {
+        alert('Please enter both username and password');
+        return;
     }
     
-    // Handle profile picture upload
-    uploadBtn.addEventListener('click', () => {
-        profileUpload.click();
-    });
+    // Show loading state
+    const loginButton = document.getElementById('log-in-button');
+    const originalText = loginButton.textContent;
+    loginButton.textContent = 'LOGGING IN...';
+    loginButton.disabled = true;
     
-    profileUpload.addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+    try {
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('password', password);
         
-        // Check if it's an image
-        if (!file.type.match('image.*')) {
-            alert('Please select an image file.');
-            return;
-        }
+        const response = await fetch('login.php', {
+            method: 'POST',
+            body: formData
+        });
         
-        // Check file size (max 2MB)
-        if (file.size > 2 * 1024 * 1024) {
-            alert('Image must be less than 2MB.');
-            return;
-        }
+        const data = await response.json();
         
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const dataUrl = e.target.result;
+        if (data.success) {
+            // Save user data to localStorage
+            localStorage.setItem('currentUser', JSON.stringify(data.user));
+            localStorage.setItem('refillUser', JSON.stringify(data.user));
             
-            // Update preview images
-            profilePreview.src = dataUrl;
-            profileHeader.src = dataUrl;
-            
-            // Save to localStorage
-            localStorage.setItem('profilePic', dataUrl);
-            
-            // Show success message
-            showSaveSuccess();
-        };
-        
-        reader.readAsDataURL(file);
-    });
-    
-    // Handle character counter
-    usernameInput.addEventListener('input', updateCounter);
-    
-    // Save changes
-    function saveChanges() {
-        // Validate input
-        if (!usernameInput.value.trim()) {
-            alert('Username cannot be empty!');
-            return;
-        }
-        
-        if (usernameInput.value.length < 3) {
-            alert('Username must be at least 3 characters long.');
-            return;
-        }
-        
-        if (usernameInput.value.length > 20) {
-            alert('Username cannot exceed 20 characters.');
-            return;
-        }
-        
-        // Update the unified user system
-        window.currentUser.username = usernameInput.value.trim();
-        
-        // Save to localStorage using the unified system
-        if (window.updateUserData) {
-            window.updateUserData();
+            alert('Login successful!');
+            window.location.href = 'updates.html';
         } else {
-            // Fallback
-            localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-            localStorage.setItem('currentUser', JSON.stringify({
-                username: window.currentUser.username,
-                role: window.currentUser.role,
-                isLoggedIn: window.currentUser.isLoggedIn
-            }));
+            alert(data.message);
         }
-        
-        // Also update profile picture separately if it exists
-        if (localStorage.getItem('profilePic')) {
-            window.currentUser.profilePic = localStorage.getItem('profilePic');
-        }
-        
-        // Show success message
-        showSaveSuccess();
+    } catch (error) {
+        console.error('Login error:', error);
+        alert('Login failed. Please try again.');
+    } finally {
+        loginButton.textContent = originalText;
+        loginButton.disabled = false;
+    }
+}
+
+// Handle registration form submission
+async function handleRegister() {
+    const emailInput = document.getElementById('email-input');
+    const usernameInput = document.getElementById('username-input');
+    const passwordInput = document.getElementById('password-input');
+    const confirmInput = document.getElementById('confirm-password-input');
+    
+    if (!emailInput || !usernameInput || !passwordInput || !confirmInput) {
+        console.error('Register inputs not found');
+        return;
     }
     
-    saveBtn.addEventListener('click', saveChanges);
+    const email = emailInput.value.trim();
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+    const confirmPassword = confirmInput.value.trim();
     
-    // Show save success message
-    function showSaveSuccess() {
-        saveSuccess.classList.add('active');
-        setTimeout(() => {
-            saveSuccess.classList.remove('active');
-        }, 3000);
+    // Validation
+    if (!email || !username || !password || !confirmPassword) {
+        alert('Please fill in all fields');
+        return;
     }
     
-    // Cancel button
-    cancelBtn.addEventListener('click', function() {
-        if (confirm('Discard all changes?')) {
-            loadUserData(); // Reload original data
-            showSaveSuccess(); // Show saved message
+    if (!email.includes('@') || !email.includes('.')) {
+        alert('Please enter a valid email address');
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        alert('Passwords do not match');
+        return;
+    }
+    
+    if (password.length < 6) {
+        alert('Password must be at least 6 characters');
+        return;
+    }
+    
+    if (username.length < 3) {
+        alert('Username must be at least 3 characters');
+        return;
+    }
+    
+    // Show loading state
+    const registerButton = document.getElementById('register-button');
+    const originalText = registerButton.textContent;
+    registerButton.textContent = 'REGISTERING...';
+    registerButton.disabled = true;
+    
+    try {
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('username', username);
+        formData.append('password', password);
+        formData.append('confirm_password', confirmPassword);
+        
+        const response = await fetch('register.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Save user data to localStorage
+            localStorage.setItem('currentUser', JSON.stringify(data.user));
+            localStorage.setItem('refillUser', JSON.stringify(data.user));
+            
+            alert('Registration successful! Welcome to Refill Studios.');
+            window.location.href = 'updates.html';
+        } else {
+            alert(data.message);
         }
-    });
+    } catch (error) {
+        console.error('Registration error:', error);
+        alert('Registration failed. Please try again.');
+    } finally {
+        registerButton.textContent = originalText;
+        registerButton.disabled = false;
+    }
+}
+
+// Check session on page load
+async function checkSession() {
+    try {
+        const response = await fetch('check_session.php');
+        const data = await response.json();
+        
+        if (data.loggedIn) {
+            localStorage.setItem('currentUser', JSON.stringify(data.user));
+            localStorage.setItem('refillUser', JSON.stringify(data.user));
+        }
+    } catch (error) {
+        console.error('Session check error:', error);
+    }
+}
+
+// Logout function
+async function logout() {
+    if (!confirm('Are you sure you want to logout?')) return;
     
-    // Navigation
-    document.getElementById('index-button').addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
+    try {
+        const response = await fetch('logout.php');
+        const data = await response.json();
+        
+        if (data.success) {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('refillUser');
+            localStorage.removeItem('profilePic');
+            
+            alert('Logged out successfully.');
+            
+            const currentPage = getCurrentPage();
+            if (currentPage === "Updates") {
+                window.location.reload();
+            } else {
+                window.location.href = 'updates.html';
+            }
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+        alert('Logout failed. Please try again.');
+    }
+}
+
+// Setup event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Check session on page load
+    checkSession();
     
-    document.getElementById('games-button').addEventListener('click', () => {
-        window.location.href = 'games.html';
-    });
+    // Setup navigation buttons
+    const indexButton = document.getElementById('index-button');
+    const gamesButton = document.getElementById('games-button');
+    const updatesButton = document.getElementById('updates-button');
     
-    document.getElementById('updates-button').addEventListener('click', () => {
-        window.location.href = 'updates.html';
-    });
+    if (indexButton) indexButton.addEventListener('click', () => window.location.href = 'index.html');
+    if (gamesButton) gamesButton.addEventListener('click', () => window.location.href = 'games.html');
+    if (updatesButton) updatesButton.addEventListener('click', () => window.location.href = 'updates.html');
     
-    // Initialize
-    loadUserData();
+    // Setup account link
+    const accountLink = document.getElementById("account-link");
+    if (accountLink && !accountLink.id.includes('text')) {
+        accountLink.addEventListener("click", account);
+    }
+    
+    // Setup sign-up button (on login page)
+    const signUpButton = document.getElementById("sign-up-button");
+    if (signUpButton) {
+        signUpButton.addEventListener("click", signUp);
+    }
+    
+    // Setup "Here" link on register page
+    const accountLinkHere = document.getElementById('account-link-here');
+    if (accountLinkHere) {
+        accountLinkHere.addEventListener("click", account);
+    }
+    
+    // Setup login/register forms based on current page
+    const currentPage = getCurrentPage();
+    
+    if (currentPage === "Account") {
+        const loginButton = document.getElementById("log-in-button");
+        if (loginButton) {
+            loginButton.addEventListener("click", handleLogin);
+        }
+        
+        // Enter key in password field
+        const passwordInput = document.getElementById('password-input');
+        if (passwordInput) {
+            passwordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handleLogin();
+                }
+            });
+        }
+    }
+    
+    if (currentPage === "Register") {
+        const registerButton = document.getElementById('register-button');
+        
+        if (registerButton) {
+            registerButton.addEventListener("click", handleRegister);
+        }
+        
+        // Enter key in confirm password field
+        const confirmInput = document.getElementById('confirm-password-input');
+        if (confirmInput) {
+            confirmInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handleRegister();
+                }
+            });
+        }
+    }
 });
+
+// Make functions available globally
+window.logout = logout;
+window.account = account;
+window.signUp = signUp;
