@@ -45,6 +45,30 @@ if ($result -> num_rows === 0) {
 
     // Then you execute every command within the file (hence MULTI_query), and then check the result to see if it worked or not
     if ($conn -> multi_query($initSQL)) {
+        // clear all the results
+        while ($conn->more_results() && $conn->next_result()) {}
+
+        // Select teh database
+        $conn->select_db($dbname);
+
+        // hash hash hash
+        $adminPass = password_hash("admin123", PASSWORD_DEFAULT);
+        $devPass = password_hash("dev123", PASSWORD_DEFAULT);
+
+        // insert the users in
+        $stmt = $conn->prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)");
+
+        $username1 = "Admin";
+        $email1 = "admin@refillstudios.com";
+        $stmt->bind_param("sss", $username1, $email1, $adminPass);
+        $stmt->execute();
+
+        $username2 = "Developer";
+        $email2 = "dev@refillstudios.com";
+        $stmt->bind_param("sss", $username2, $email2, $devPass);
+        $stmt->execute();
+
+
         echo "Database initialized";
     } else {
         echo "Error with database initialization blabla: " . $conn -> error;
