@@ -18,19 +18,28 @@ if (empty($username) || empty($password)) {
 }
 
 try {
-    // Check if user exists (by username or email)
-    $stmt = $pdo->prepare("SELECT id, username, email, password_hash, role, profile_pic FROM users WHERE username = ? OR email = ?");
+    // Get user info
+    $stmt = $pdo->prepare("SELECT id, username, email, password_hash, profile_pic FROM users WHERE username = ? OR email = ?");
     $stmt->execute([$username, $username]);
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password_hash'])) {
+        // Check if user is staff (just check if they exist in staff table)
+        $staffStmt = $pdo->prepare("SELECT role FROM staff WHERE user_id = ?");
+        $staffStmt->execute([$user['id']]);
+        $staff = $staffStmt->fetch();
+        
+        $isStaff = ($staff !== false);
+        $staffRole = $isStaff ? $staff['role'] : null;
+        
         // Set session variables
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['email'] = $user['email'];
-        $_SESSION['role'] = $user['role'];
         $_SESSION['profile_pic'] = $user['profile_pic'] ?? 'images/account.png';
         $_SESSION['logged_in'] = true;
+        $_SESSION['is_staff'] = $isStaff;
+        $_SESSION['staff_role'] = $staffRole;
 
         echo json_encode([
             'success' => true,
@@ -38,9 +47,10 @@ try {
             'user' => [
                 'username' => $user['username'],
                 'email' => $user['email'],
-                'role' => $user['role'],
                 'profilePic' => $user['profile_pic'] ?? 'images/account.png',
-                'isLoggedIn' => true
+                'isLoggedIn' => true,
+                'isStaff' => $isStaff,
+                'staffRole' => $staffRole
             ]
         ]);
     } else {
