@@ -10,10 +10,16 @@ window.currentUser = {
 
 // Initialize user system on any page
 async function initializeUserSystem() {
-    fetch("/api/get_user_session.php")
+    // Fetch the session data from the backend and apply it (default fallbacks are done on the backend too so here they arent needed)
+    fetch("/Refill-Studios/api/get_user_session.php")
     .then(response => response.json())
     .then(data => {
-        console.log(data);
+        window.currentUser = {
+            username: data.username,
+            role: data.role,
+            isLoggedIn: data.isLoggedIn,
+            profilePic: data.profilePic
+        }
     })
     .catch(error => {
         console.error("Error:", error);
@@ -21,16 +27,6 @@ async function initializeUserSystem() {
     
     // Update UI if possible
     updateUserUI();
-}
-
-// Update user information in localStorage
-function updateUserData() {
-    localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-    localStorage.setItem('currentUser', JSON.stringify({
-        username: window.currentUser.username,
-        role: window.currentUser.role,
-        isLoggedIn: window.currentUser.isLoggedIn
-    }));
 }
 
 // Login function
@@ -42,23 +38,31 @@ function loginUser(username, role = 'user') {
         profilePic: localStorage.getItem('profilePic') || 'images/account.png'
     };
     
-    updateUserData();
     console.log('User logged in:', window.currentUser);
     
-    // Update UI
-    updateUserUI();
+    // Refetch new data
+    initializeUserSystem();
 }
 
 // Logout function
-function logoutUser() {
+async function logoutUser() {
     window.currentUser = {
         username: 'Guest',
         role: 'user',
         isLoggedIn: false,
         profilePic: 'images/account.png'
     };
+
+    fetch("/Refill-Studios/api/logout.php")
+    .then(response => response.json())
+    .then(data => {
+        console.log(data.message);
+    })
+    .catch(error => {
+        console.error("Error:", error);
+    });
     
-    updateUserData();
+
     console.log('User logged out');
     
     // Update UI
@@ -106,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Make functions available globally
+window.initializeUserSystem = initializeUserSystem;
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
 window.isLoggedIn = isLoggedIn;
