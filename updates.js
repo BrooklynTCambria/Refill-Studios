@@ -9,38 +9,8 @@ let currentPostId = null;
 // USER MANAGEMENT - REFRESH USER DATA
 // ============================================
 function refreshUserData() {
-    // Check both possible storage locations
-    const refillUser = JSON.parse(localStorage.getItem('refillUser'));
-    const accountUser = JSON.parse(localStorage.getItem('currentUser'));
-    
-    // Update window.currentUser with the latest data
-    if (refillUser) {
-        window.currentUser = {
-            ...window.currentUser,
-            ...refillUser,
-            isLoggedIn: true
-        };
-        console.log('Updated user from refillUser:', window.currentUser);
-    } else if (accountUser) {
-        window.currentUser = {
-            username: accountUser.username || 'Guest',
-            role: accountUser.role || 'user',
-            isLoggedIn: true,
-            profilePic: localStorage.getItem('profilePic') || 'images/account.png'
-        };
-        console.log('Updated user from currentUser:', window.currentUser);
-    } else {
-        window.currentUser = {
-            username: 'Guest',
-            role: 'user',
-            isLoggedIn: false,
-            profilePic: 'images/account.png'
-        };
-        console.log('No user found, set to Guest');
-    }
-    
-    // Save back to refillUser for consistency
-    localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
+    // Use this functioon to fetch user data since its better, might not even need to call it but you never know
+    window.initializeUserSystem();
     
     // Force header to update
     if (window.createUniversalHeader) {

@@ -9,56 +9,25 @@ window.currentUser = {
 };
 
 // Initialize user system on any page
-function initializeUserSystem() {
-    // First check refillUser (updates page system)
-    const refillUser = JSON.parse(localStorage.getItem('refillUser'));
-    
-    // Then check currentUser (account system)
-    const accountUser = JSON.parse(localStorage.getItem('currentUser'));
-    
-    // Priority: refillUser has the full data structure
-    if (refillUser) {
-        Object.assign(window.currentUser, refillUser);
-        console.log('Loaded user from refillUser:', window.currentUser);
-    } 
-    // Fallback: currentUser (from account system)
-    else if (accountUser) {
+async function initializeUserSystem() {
+    // Fetch the session data from the backend and apply it (default fallbacks are done on the backend too so here they arent needed)
+    fetch("/Refill-Studios/api/get_user_session.php")
+    .then(response => response.json())
+    .then(data => {
         window.currentUser = {
-            username: accountUser.username || 'User',
-            role: accountUser.role || 'user',
-            isLoggedIn: accountUser.isLoggedIn !== undefined ? accountUser.isLoggedIn : true,
-            profilePic: localStorage.getItem('profilePic') || 'images/account.png'
-        };
-        // Save to refillUser for consistency
-        localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-        console.log('Loaded user from currentUser:', window.currentUser);
-    }
-    // Default guest user
-    else {
-        window.currentUser = {
-            username: 'Guest',
-            role: 'user',
-            isLoggedIn: false,
-            profilePic: 'images/account.png'
-        };
-        localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-        console.log('Default guest user loaded');
-    }
+            username: data.username,
+            role: data.role,
+            isLoggedIn: data.isLoggedIn,
+            profilePic: data.profilePic
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+    });
     
     // Update UI if possible
     updateUserUI();
 }
-
-// Update user information in localStorage
-function updateUserData() {
-    localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-    localStorage.setItem('currentUser', JSON.stringify({
-        username: window.currentUser.username,
-        role: window.currentUser.role,
-        isLoggedIn: window.currentUser.isLoggedIn
-    }));
-}
-
 
 // Login function
 function loginUser(username, role = 'user') {
@@ -69,23 +38,31 @@ function loginUser(username, role = 'user') {
         profilePic: localStorage.getItem('profilePic') || 'images/account.png'
     };
     
-    updateUserData();
     console.log('User logged in:', window.currentUser);
     
-    // Update UI
-    updateUserUI();
+    // Refetch new data
+    initializeUserSystem();
 }
 
 // Logout function
-function logoutUser() {
+async function logoutUser() {
     window.currentUser = {
         username: 'Guest',
         role: 'user',
         isLoggedIn: false,
         profilePic: 'images/account.png'
     };
+
+    fetch("/Refill-Studios/api/logout.php")
+    .then(response => response.json())
+    .then(data => {
+        console.log(data.message);
+    })
+    .catch(error => {
+        console.error("Error:", error);
+    });
     
-    updateUserData();
+
     console.log('User logged out');
     
     // Update UI
@@ -133,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Make functions available globally
+window.initializeUserSystem = initializeUserSystem;
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
 window.isLoggedIn = isLoggedIn;
