@@ -1,26 +1,12 @@
-// Simple Account Settings Page JavaScript
+// updated-account-settings.js - Backend-connected Account Settings
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is logged in
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser) {
-        alert('Please login first');
-        window.location.href = 'account.html';
-        return;
-    }
-    
-    // Check if user is logged in using the unified system
     if (!window.currentUser || !window.currentUser.isLoggedIn) {
         alert('Please login first');
         window.location.href = 'account.html';
         return;
     }
-    
-    // Load user data from the unified system
-    const userData = {
-        username: window.currentUser.username || 'Guest',
-        profilePic: window.currentUser.profilePic || 'images/account.png'
-    };
     
     // DOM Elements
     const profilePreview = document.getElementById('profile-preview-large');
@@ -35,9 +21,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load user data into form
     function loadUserData() {
-        profilePreview.src = userData.profilePic;
-        profileHeader.src = userData.profilePic;
-        usernameInput.value = userData.username;
+        profilePreview.src = window.currentUser.profilePic || 'images/account.png';
+        if (profileHeader) profileHeader.src = window.currentUser.profilePic || 'images/account.png';
+        usernameInput.value = window.currentUser.username;
         updateCounter();
     }
     
@@ -78,13 +64,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Update preview images
             profilePreview.src = dataUrl;
-            profileHeader.src = dataUrl;
+            if (profileHeader) profileHeader.src = dataUrl;
             
-            // Save to localStorage
+            // Save to localStorage temporarily (will be synced on save)
             localStorage.setItem('profilePic', dataUrl);
-            
-            // Show success message
-            showSaveSuccess();
+            window.currentUser.profilePic = dataUrl;
         };
         
         reader.readAsDataURL(file);
@@ -94,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
     usernameInput.addEventListener('input', updateCounter);
     
     // Save changes
-    function saveChanges() {
+    async function saveChanges() {
         // Validate input
         if (!usernameInput.value.trim()) {
             alert('Username cannot be empty!');
@@ -111,29 +95,42 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Update the unified user system
-        window.currentUser.username = usernameInput.value.trim();
+        // Prepare settings to update
+        const settings = {};
         
-        // Save to localStorage using the unified system
-        if (window.updateUserData) {
-            window.updateUserData();
-        } else {
-            // Fallback
-            localStorage.setItem('refillUser', JSON.stringify(window.currentUser));
-            localStorage.setItem('currentUser', JSON.stringify({
-                username: window.currentUser.username,
-                role: window.currentUser.role,
-                isLoggedIn: window.currentUser.isLoggedIn
-            }));
+        if (usernameInput.value.trim() !== window.currentUser.username) {
+            settings.username = usernameInput.value.trim();
         }
         
-        // Also update profile picture separately if it exists
         if (localStorage.getItem('profilePic')) {
-            window.currentUser.profilePic = localStorage.getItem('profilePic');
+            settings.profile_pic = localStorage.getItem('profilePic');
         }
         
-        // Show success message
-        showSaveSuccess();
+        // Update via API if there are changes
+        if (Object.keys(settings).length > 0 && window.updateUserSettings) {
+            const result = await window.updateUserSettings(settings);
+            
+            if (result.success) {
+                showSaveSuccess();
+                
+                // Update local user object
+                if (settings.username) {
+                    window.currentUser.username = settings.username;
+                }
+                if (settings.profile_pic) {
+                    window.currentUser.profilePic = settings.profile_pic;
+                }
+                
+                // Update header if it exists
+                const headerUsername = document.getElementById('account-link-text');
+                if (headerUsername) headerUsername.textContent = window.currentUser.username;
+                
+                const headerPic = document.getElementById('profile-pic-header');
+                if (headerPic) headerPic.src = window.currentUser.profilePic;
+            }
+        } else {
+            showSaveSuccess();
+        }
     }
     
     saveBtn.addEventListener('click', saveChanges);
@@ -150,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
     cancelBtn.addEventListener('click', function() {
         if (confirm('Discard all changes?')) {
             loadUserData(); // Reload original data
-            showSaveSuccess(); // Show saved message
+            localStorage.removeItem('profilePic'); // Clear temporary profile pic
         }
     });
     

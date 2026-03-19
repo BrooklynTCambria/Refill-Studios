@@ -1,8 +1,5 @@
-// ============================================
-// CREATE POST PAGE - MAIN SCRIPT
-// ============================================
+// updated-create-post.js - Backend-connected Create Post Page
 
-// Global variables
 let currentUser = {
     username: 'Guest',
     role: 'user'
@@ -18,29 +15,20 @@ let imageUpload, imageInput, imagePreview, previewImage, removeImageBtn;
 let submitBtn, cancelBtn, successMessage;
 let userInfoBanner, postingUsername, userRoleBadge;
 
-// At the beginning of create-post.js, add this check:
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is admin or developer
-    const currentUser = JSON.parse(localStorage.getItem('refillUser') || localStorage.getItem('currentUser') || 'null');
-    
-    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'developer')) {
+    if (!window.currentUser || 
+        (window.currentUser.role !== 'admin' && window.currentUser.role !== 'developer')) {
         alert('Only admins and developers can create posts.');
         window.location.href = 'updates.html';
         return;
     }
     
-    // ... rest of your existing create-post.js code
-});
-
-// ============================================
-// INITIALIZATION
-// ============================================
-document.addEventListener('DOMContentLoaded', function() {
     // Cache DOM elements
     cacheDOMElements();
     
-    // Load user data and check permissions
-    if (!loadUserData()) return;
+    // Load user data
+    loadUserData();
     
     // Initialize form
     initializeForm();
@@ -69,14 +57,9 @@ function cacheDOMElements() {
     userRoleBadge = document.getElementById('user-role-badge');
 }
 
-// ============================================
-// USER MANAGEMENT
-// ============================================
 function loadUserData() {
-    const savedUser = JSON.parse(localStorage.getItem('refillUser'));
-    
-    if (savedUser) {
-        currentUser = savedUser;
+    if (window.currentUser) {
+        currentUser = window.currentUser;
         
         // Update UI with user info
         if (postingUsername) {
@@ -95,29 +78,9 @@ function loadUserData() {
                 userInfoBanner.style.color = '#a3d9a3';
             }
         }
-        
-        // Check if user has permission to create posts
-        if (currentUser.role !== 'admin' && currentUser.role !== 'developer') {
-            alert('You do not have permission to create posts. Redirecting...');
-            setTimeout(() => {
-                window.location.href = 'updates.html';
-            }, 1500);
-            return false;
-        }
-        
-        return true;
-    } else {
-        alert('Please log in to create posts. Redirecting...');
-        setTimeout(() => {
-            window.location.href = 'updates.html';
-        }, 1500);
-        return false;
     }
 }
 
-// ============================================
-// FORM MANAGEMENT
-// ============================================
 function initializeForm() {
     // Character counters
     headerInput.addEventListener('input', updateHeaderCounter);
@@ -161,9 +124,6 @@ function updateDescCounter() {
     }
 }
 
-// ============================================
-// IMAGE UPLOAD HANDLING
-// ============================================
 function setupImageUploadListeners() {
     // Click to upload
     imageUpload.addEventListener('click', () => imageInput.click());
@@ -244,10 +204,7 @@ function removeImage() {
     formChanged = true;
 }
 
-// ============================================
-// FORM SUBMISSION
-// ============================================
-function handleFormSubmit(e) {
+async function handleFormSubmit(e) {
     e.preventDefault();
     
     if (!validateForm()) return;
@@ -256,8 +213,53 @@ function handleFormSubmit(e) {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Posting...';
     
-    // Simulate API delay
-    setTimeout(createPost, 1500);
+    // Create post object
+    const post = {
+        header: headerInput.value.trim(),
+        description: descInput.value.trim(),
+        image: imageDataUrl ? {
+            dataUrl: imageDataUrl,
+            name: selectedImage ? selectedImage.name : 'image',
+            type: selectedImage ? selectedImage.type : 'image/jpeg',
+            size: selectedImage ? selectedImage.size : 0
+        } : null
+    };
+    
+    try {
+        const response = await fetch('api/posts.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(post)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show success message
+            successMessage.classList.add('active');
+            
+            // Save to session for notification
+            sessionStorage.setItem('newPostAdded', 'true');
+            sessionStorage.setItem('latestPost', JSON.stringify({
+                header: post.header,
+                id: data.id
+            }));
+            
+            // Redirect after delay
+            setTimeout(() => {
+                window.location.href = 'updates.html';
+            }, 3000);
+        } else {
+            alert('Failed to create post. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Post';
+        }
+    } catch (error) {
+        console.error('Failed to create post:', error);
+        alert('Failed to create post. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Post';
+    }
 }
 
 function validateForm() {
@@ -278,100 +280,6 @@ function validateForm() {
     return true;
 }
 
-function createPost() {
-    // Determine role title based on user role
-    let roleTitle = 'Developer';
-    if (currentUser.role === 'admin') {
-        roleTitle = 'Admin';
-    } else if (currentUser.role === 'developer') {
-        roleTitle = 'Developer';
-    }
-    
-    // Create post object with image data
-    const post = {
-        id: Date.now(),
-        header: headerInput.value.trim(),
-        description: descInput.value.trim(),
-        role: roleTitle,
-        author: currentUser.username,
-        date: getCurrentDate(),
-        comments: [], // MAKE SURE THIS IS INCLUDED
-        image: imageDataUrl ? {
-            dataUrl: imageDataUrl,
-            name: selectedImage ? selectedImage.name : 'image',
-            type: selectedImage ? selectedImage.type : 'image/jpeg',
-            size: selectedImage ? selectedImage.size : 0
-        } : null,
-        comments: []
-    };
-    
-    // Save post to localStorage
-    savePostToStorage(post);
-    
-    // Show success message
-    successMessage.classList.add('active');
-    
-    // Save to session for notification
-    sessionStorage.setItem('newPostAdded', 'true');
-    sessionStorage.setItem('latestPost', JSON.stringify({
-        header: post.header,
-        id: post.id
-    }));
-    
-    // Reset form after delay
-    setTimeout(() => {
-        resetForm();
-        
-        // Redirect to updates page
-        setTimeout(() => {
-            window.location.href = 'updates.html';
-        }, 2000);
-    }, 3000);
-}
-
-function getCurrentDate() {
-    const now = new Date();
-    const options = { 
-        month: 'long', 
-        day: 'numeric', 
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    };
-    return now.toLocaleDateString('en-US', options);
-}
-
-function savePostToStorage(post) {
-    const existingPosts = JSON.parse(localStorage.getItem('refillPosts') || '[]');
-    existingPosts.unshift(post);
-    localStorage.setItem('refillPosts', JSON.stringify(existingPosts));
-}
-
-function resetForm() {
-    form.reset();
-    selectedImage = null;
-    imageDataUrl = null;
-    previewImage.src = '';
-    imagePreview.style.display = 'none';
-    imageUpload.style.display = 'block';
-    imageInput.value = '';
-    
-    // Reset counters
-    headerCounter.textContent = '0/100';
-    descCounter.textContent = '0/1000';
-    headerCounter.classList.remove('warning', 'error');
-    descCounter.classList.remove('warning', 'error');
-    
-    // Reset button
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Post';
-    
-    formChanged = false;
-}
-
-// ============================================
-// NAVIGATION & EVENT LISTENERS
-// ============================================
 function setupNavigation() {
     // Navigation buttons
     document.getElementById('index-button').addEventListener('click', () => {
@@ -387,15 +295,6 @@ function setupNavigation() {
     document.getElementById('updates-button').addEventListener('click', () => {
         if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) return;
         window.location.href = 'updates.html';
-    });
-    
-    document.getElementById('create-post-button').addEventListener('click', () => {
-        window.location.href = 'create-post.html';
-    });
-    
-    // Account link
-    document.getElementById('account-link').addEventListener('click', () => {
-        alert(`Account: ${currentUser.username}\nRole: ${currentUser.role}\n\n(In a real app, this would open account settings)`);
     });
     
     // Cancel button

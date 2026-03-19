@@ -1,4 +1,4 @@
-// Account Manager - Integrated with Updates System and Dropdown
+// updated-accountManager.js - Backend-connected Account Manager
 
 function getCurrentPage() {
     let path = window.location.pathname;
@@ -30,9 +30,11 @@ function signUp() {
     window.location.href = "register.html";
 }
 
-function handleLogin() {
-    const usernameInput = document.querySelector('.input-box[placeholder="Username"]');
-    const passwordInput = document.querySelector('.input-box[placeholder="Password"]');
+async function handleLogin() {
+    const usernameInput = document.getElementById('username-input') || 
+                         document.querySelector('.input-box[placeholder="Username"]');
+    const passwordInput = document.getElementById('password-input') || 
+                         document.querySelector('.input-box[placeholder="Password"]');
     
     if (!usernameInput || !passwordInput) {
         console.error('Login inputs not found');
@@ -47,59 +49,22 @@ function handleLogin() {
         return;
     }
     
-    // Check for demo accounts
-    if (username.toLowerCase() === 'admin' && password === 'admin123') {
-        const userData = {
-            username: 'Admin',
-            role: 'admin',
-            isLoggedIn: true,
-            profilePic: 'images/account.png'
-        };
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        localStorage.setItem('refillUser', JSON.stringify(userData)); // ALSO SAVE TO REFILLUSER
-        alert('Login successful! Welcome Admin.');
-        window.location.href = 'updates.html';
-        return;
-    }
-    
-    if (username.toLowerCase() === 'dev' && password === 'dev123') {
-        const userData = {
-            username: 'Developer',
-            role: 'developer',
-            isLoggedIn: true,
-            profilePic: 'images/account.png'
-        };
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        localStorage.setItem('refillUser', JSON.stringify(userData)); // ALSO SAVE TO REFILLUSER
-        alert('Login successful! Welcome Developer.');
-        window.location.href = 'updates.html';
-        return;
-    }
-    
-    // Check for existing users
-    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    const foundUser = users.find(user => 
-        user.username.toLowerCase() === username.toLowerCase() && 
-        user.password === password
-    );
-    
-    if (foundUser) {
-        const userData = {
-            username: foundUser.username,
-            role: 'user',
-            isLoggedIn: true,
-            profilePic: 'images/account.png'
-        };
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        localStorage.setItem('refillUser', JSON.stringify(userData)); // ALSO SAVE TO REFILLUSER
-        alert('Login successful!');
-        window.location.href = 'updates.html';
+    // Use the global login function
+    if (window.loginUser) {
+        const result = await window.loginUser(username, password);
+        
+        if (result.success) {
+            alert('Login successful!');
+            window.location.href = 'updates.html';
+        } else {
+            alert(result.message || 'Invalid username or password');
+        }
     } else {
-        alert('Invalid username or password');
+        alert('Login system not available');
     }
 }
 
-function handleRegister() {
+async function handleRegister() {
     const emailInput = document.querySelector('.input-box[placeholder="Example@gmail.com"]');
     const usernameInput = document.querySelector('.input-box[placeholder="Username"]');
     const passwordInput = document.querySelector('.input-box[type="password"]');
@@ -142,38 +107,19 @@ function handleRegister() {
         return;
     }
     
-    // Check if user already exists
-    const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    if (users.some(user => user.username.toLowerCase() === username.toLowerCase())) {
-        alert('Username already exists');
-        return;
+    // Use the global register function
+    if (window.registerUser) {
+        const result = await window.registerUser(username, email, password);
+        
+        if (result.success) {
+            alert('Registration successful! Welcome to Refill Studios.');
+            window.location.href = 'updates.html';
+        } else {
+            alert(result.message || 'Registration failed');
+        }
+    } else {
+        alert('Registration system not available');
     }
-    
-    if (users.some(user => user.email.toLowerCase() === email.toLowerCase())) {
-        alert('Email already registered');
-        return;
-    }
-    
-    // Save new user
-    const newUser = {
-        email: email,
-        username: username,
-        password: password,
-        createdAt: new Date().toISOString()
-    };
-    
-    users.push(newUser);
-    localStorage.setItem('registeredUsers', JSON.stringify(users));
-    
-    // Auto-login after registration
-    const userData = {
-        username: username,
-        role: 'user'
-    };
-    localStorage.setItem('currentUser', JSON.stringify(userData));
-    
-    alert('Registration successful! Welcome to Refill Studios.');
-    window.location.href = 'updates.html';
 }
 
 // Setup event listeners
@@ -187,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (gamesButton) gamesButton.addEventListener('click', () => window.location.href = 'games.html');
     if (updatesButton) updatesButton.addEventListener('click', () => window.location.href = 'updates.html');
     
-    // Setup account link (for simple pages without dropdown)
+    // Setup account link
     const accountLink = document.getElementById("account-link");
     if (accountLink && !accountLink.id.includes('text')) {
         accountLink.addEventListener("click", account);
@@ -215,7 +161,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Also allow Enter key in password field
-        const passwordInput = document.querySelector('.input-box[placeholder="Password"]');
+        const passwordInput = document.getElementById('password-input') ||
+                            document.querySelector('.input-box[placeholder="Password"]');
         if (passwordInput) {
             passwordInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
@@ -244,30 +191,27 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Logout function (call this from anywhere to logout)
-function logout() {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('refillUser');
-    alert('Logged out successfully.');
-    
-    // Redirect based on current page
-    const currentPage = getCurrentPage();
-    if (currentPage === "Updates") {
-        window.location.reload();
+// Logout function
+async function logout() {
+    if (window.logoutUser) {
+        await window.logoutUser();
     } else {
+        // Fallback
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('refillUser');
+        alert('Logged out successfully.');
         window.location.href = 'account.html';
     }
 }
 
 // Check if user is logged in
 function isLoggedIn() {
-    return localStorage.getItem('currentUser') !== null;
+    return window.currentUser?.isLoggedIn || false;
 }
 
 // Get current user data
 function getCurrentUser() {
-    const userJson = localStorage.getItem('currentUser');
-    return userJson ? JSON.parse(userJson) : null;
+    return window.currentUser || null;
 }
 
 // Make functions available globally
