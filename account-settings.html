@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - Refill Studios</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="left">
+                <img src="images/Logo.png" alt="Logo Icon" class="logo">
+                <img src="images/Title.png" alt="Refill Studios Title" class="title-img">
+            </div>
+            <div class="right">
+                <div class="account-dropdown">
+                    <div class="account-trigger" id="account-trigger">
+                        <img src="images/account.png" alt="Account Icon" class="profile-pic-small" id="profile-pic-header">
+                        <p class="account-link">Account</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <nav>
+            <button id="index-button" class="nav-btn">HOME</button>
+            <button id="games-button" class="nav-btn">GAMES</button>
+            <button id="updates-button" class="nav-btn">UPDATES</button>
+        </nav>
+
+        <main>
+            <div class="simple-settings-container">
+                <a href="updates.html" class="back-to-updates">Back to Updates</a>
+                
+                <div class="save-success" id="save-success">
+                    <span>✓</span>
+                    <span>Settings saved successfully!</span>
+                </div>
+
+                <div class="profile-section-simple">
+                    <img src="images/account.png" alt="Profile" class="profile-preview-large" id="profile-preview-large">
+                    <button class="upload-profile-btn" id="upload-profile-btn" style="margin-bottom: 20px;">Change Picture</button>
+                    <input type="file" id="profile-upload" accept="image/*" style="display: none;">
+                    
+                    <div class="username-input-container">
+                        <input type="text" class="username-input" id="username-input" placeholder="Enter username" maxlength="20">
+                        <div class="char-counter" id="username-counter">0/20</div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button class="upload-profile-btn" id="save-btn" style="width: 100%;">Save Changes</button>
+                        <button class="cancel-btn" id="cancel-btn" style="width: 100%; margin-top: 10px;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- At the bottom of account-settings.html body -->
+    <script src="user-system.js"></script>
+    <script src="header-system.js"></script>
+    <script src="account-settings.js"></script>
+</body>
+</html>

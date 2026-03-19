@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Refill Studios - Games</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="games.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="left">
+        <img src="images/Logo.png" alt="Logo Icon" class="logo">
+        <img src="images/Title.png" alt="Refill Studios Title" class="title-img">
+      </div>
+      <div class="right">
+        <img src="images/account.png" alt="Account Icon" class="account-icon">
+        <p class="account-link" id="account-link">Account</p>
+      </div>
+    </header>
+
+    <nav>
+      <button id="index-button" class="nav-btn">HOME</button>
+      <button id="games-button" class="nav-btn active">GAMES</button>
+      <button id="updates-button" class="nav-btn">UPDATES</button>
+    </nav>
+
+    <main>
+      <div class="carousel-section">
+        <!-- Logo Carousel at TOP -->
+        <div class="logo-carousel-container">
+          <div class="carousel-wrapper">
+            <!-- Left Arrow -->
+            <button class="arrow-container arrow-left-container">
+              <img src="images/left-arrow.png" alt="Previous" class="arrow-img arrow-left">
+            </button>
+            
+            <!-- Logo Carousel -->
+            <div class="logo-carousel">
+              <!-- Previous Logo -->
+              <div class="logo-preview prev-logo">
+                <img src="images/game3-logo.png" alt="Game 3" class="carousel-logo">
+              </div>
+              
+              <!-- Current Logo -->
+              <div class="logo-current active-logo">
+                <img src="images/game1-logo.png" alt="Game 1" class="carousel-logo">
+              </div>
+              
+              <!-- Next Logo -->
+              <div class="logo-preview next-logo">
+                <img src="images/game2-logo.png" alt="Game 2" class="carousel-logo">
+              </div>
+            </div>
+            
+            <!-- Right Arrow -->
+            <button class="arrow-container arrow-right-container">
+              <img src="images/right-arrow.png" alt="Next" class="arrow-img arrow-right">
+            </button>
+          </div>
+          
+          <!-- Dots Indicator -->
+          <div class="carousel-dots">
+            <span class="dot active" data-index="0"></span>
+            <span class="dot" data-index="1"></span>
+            <span class="dot" data-index="2"></span>
+          </div>
+        </div>
+
+        <div class="game-info-grid">
+          <!-- Left: Description -->
+          <div class="game-info-box">
+            <h3>GAME DESCRIPTION</h3>
+            <p class="game-description-main">
+              Enter a futuristic cyberpunk world where you must hack, sneak,
+              and fight your way through a dystopian megacity. Uncover corporate
+              conspiracies and upgrade your cybernetic enhancements to survive.
+            </p>
+          </div>
+
+          <!-- Center: Title + Play -->
+          <div class="game-info-center">
+            <h2 class="game-title-main">CYBER REALM</h2>
+            <button class="play-button play-game-btn-main">
+              <span>PLAY GAME</span>
+            </button>
+          </div>
+
+          <!-- Right: Details -->
+          <div class="game-info-box">
+            <h3>GAME DETAILS</h3>
+            <p><strong>Genre:</strong> <span class="detail-value-main">Action / Stealth</span></p>
+            <p><strong>Platform:</strong> <span class="detail-value-main">PC</span></p>
+            <p><strong>Release:</strong> <span class="detail-value-main">In Development</span></p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="games.js"></script>
+  <script src="index.js"></script>
+  <script src="user-system.js"></script>
+  <script src="header-system.js"></script>
+</body>
+</html>

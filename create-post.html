@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Refill Studios - Create Post</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="left">
+        <img src="images/Logo.png" alt="Logo Icon" class="logo">
+        <img src="images/Title.png" alt="Refill Studios Title" class="title-img">
+      </div>
+      <div class="right">
+        <img src="images/account.png" alt="Account Icon" class="account-icon">
+        <p class="account-link" id="account-link">Account</p>
+      </div>
+    </header>
+
+    <nav>
+      <button id="index-button" class="nav-btn">HOME</button>
+      <button id="games-button" class="nav-btn">GAMES</button>
+      <button id="updates-button" class="nav-btn">UPDATES</button>
+      <button id="create-post-button" class="nav-btn active">CREATE POST</button>
+    </nav>
+
+    <main>
+      <div class="create-post-container">
+        <a href="updates.html" class="back-link">&larr; Back to Updates</a>
+        <h1 class="page-title">CREATE POST</h1>
+        
+        <div class="user-info-banner" id="user-info-banner">
+          <div>
+            <strong>Posting as:</strong> <span id="posting-username">Loading...</span>
+          </div>
+          <div class="user-role-badge" id="user-role-badge">Loading...</div>
+        </div>
+        
+        <div class="success-message" id="success-message">
+          <div class="success-icon">✓</div>
+          <div>
+            <strong>Post published successfully!</strong><br>
+            Redirecting to updates page...
+          </div>
+        </div>
+        
+        <form class="create-post-form" id="create-post-form">
+          <div class="form-group">
+            <label class="form-label">HEADER</label>
+            <input type="text" class="form-input" id="post-header" placeholder="Enter post header/title" maxlength="100" required>
+            <div class="char-counter" id="header-counter">0/100</div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">DESCRIPTION</label>
+            <textarea class="form-textarea" id="post-description" placeholder="Enter post description/content" maxlength="1000" required></textarea>
+            <div class="char-counter" id="desc-counter">0/1000</div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">PICTURE (OPTIONAL)</label>
+            <div class="image-upload-section" id="image-upload">
+              <div class="image-upload-icon">📷</div>
+              <div class="image-upload-text">Click to upload an image</div>
+              <div class="image-upload-note">or drag and drop an image here</div>
+              <input type="file" id="image-input" accept="image/*" style="display: none;">
+            </div>
+            
+            <div class="image-preview" id="image-preview">
+              <img class="preview-image" id="preview-image" src="" alt="Preview">
+              <button type="button" class="remove-image-btn" id="remove-image">Remove Image</button>
+            </div>
+          </div>
+          
+          <div class="form-buttons">
+            <button type="button" class="cancel-btn" id="cancel-btn">Cancel</button>
+            <button type="submit" class="post-btn" id="submit-btn">Post</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script src="create-post.js"></script>
+</body>
+</html>

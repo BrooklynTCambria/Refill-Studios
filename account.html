@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Refill Studios - Login</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="left">
+        <img src="images/Logo.png" alt="Logo Icon" class="logo">
+        <img src="images/Title.png" alt="Refill Studios Title" class="title-img">
+      </div>
+      <div class="right">
+        <!-- Will be populated by JavaScript -->
+      </div>
+    </header>
+
+    <nav>
+      <button id="index-button" class="nav-btn">HOME</button>
+      <button id="games-button" class="nav-btn">GAMES</button>
+      <button id="updates-button" class="nav-btn">UPDATES</button>
+    </nav>
+    
+    <main>
+      <div class="account-area">
+        <h2><u>LOG IN</u></h2>
+        <br><br>
+        <p>Username</p>
+        <input class="input-box" id="username-input" placeholder="Username">        
+        <br><br><br>
+        <p>Password</p>
+        <input type="password" class="input-box" id="password-input" placeholder="Password">
+        <br><br>
+        <button id="log-in-button" class="account-button">LOG IN</button>
+        <br><br><br><br><br>
+        <p>Don't have an account?</p>
+        <button id="sign-up-button" class="account-button"> SIGN UP </button>
+      </div>
+    </main>
+  </div>
+
+  <script src="accountManager.js"></script>
+</body>
+</html>
