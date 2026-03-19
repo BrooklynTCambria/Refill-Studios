@@ -1,80 +1,79 @@
 <?php
 session_start();
-require_once 'db.php';
 
+// This essentially runs the script and makes variables available, in this case we need the database connection
+require_once 'db.php';
 header('Content-Type: application/json');
 
+// Only allows POST requests, kinda useless since you probably only use post, but im not gonna change too much
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
 }
 
+// Gets the data sent over ohmahgah
 $username = trim($_POST['username'] ?? '');
 $password = $_POST['password'] ?? '';
 
+// If they are empty kill the user gruesomly
 if (empty($username) || empty($password)) {
     echo json_encode(['success' => false, 'message' => 'Username and password are required']);
     exit;
 }
 
 try {
-    // Get user info with role from users table
-    $stmt = $pdo->prepare("SELECT id, username, email, password_hash, profile_pic, role FROM users WHERE username = ? OR email = ?");
-    $stmt->execute([$username, $username]);
-    $user = $stmt->fetch();
-
+    // Gets the matching user from the data, why the hell is it using username twice for username and email in the search? Is username email?
+    // Let me check ... i dont know
+    $stmt = $conn->prepare("SELECT id, username, email, password_hash, profile_pic FROM users WHERE username = ? OR email = ?");
+    $stmt->bind_param("ss", $username, $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
+    
     if ($user && password_verify($password, $user['password_hash'])) {
-        // Check if user is staff (for backward compatibility)
-        $staffStmt = $pdo->prepare("SELECT role FROM staff WHERE user_id = ?");
-        $staffStmt->execute([$user['id']]);
-        $staff = $staffStmt->fetch();
+        // Check if its staff or nah
+        $staffStmt = $conn->prepare("SELECT role FROM staff WHERE user_id = ?");
+        $staffStmt->bind_param("i", $user['id']);
+        $staffStmt->execute();
+        $staffResult = $staffStmt->get_result();
+        $staff = $staffResult->fetch_assoc();
         
-        $isStaff = ($staff !== false);
+        $isStaff = ($staff !== null);
         $staffRole = $isStaff ? $staff['role'] : null;
         
-        // Generate session token
-        $sessionToken = bin2hex(random_bytes(32));
-        $expiresAt = date('Y-m-d H:i:s', strtotime('+30 days'));
-        
-        // Store session
-        $sessionStmt = $pdo->prepare("INSERT INTO sessions (user_id, session_token, ip_address, user_agent, expires_at) VALUES (?, ?, ?, ?, ?)");
-        $sessionStmt->execute([
-            $user['id'], 
-            $sessionToken, 
-            $_SERVER['REMOTE_ADDR'] ?? null,
-            $_SERVER['HTTP_USER_AGENT'] ?? null,
-            $expiresAt
-        ]);
-        
-        // Set session variables
+        // Set session variables boi
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['email'] = $user['email'];
         $_SESSION['profile_pic'] = $user['profile_pic'] ?? 'images/account.png';
         $_SESSION['logged_in'] = true;
-        $_SESSION['role'] = $user['role'];
         $_SESSION['is_staff'] = $isStaff;
         $_SESSION['staff_role'] = $staffRole;
-        $_SESSION['session_token'] = $sessionToken;
 
+        // send them back where they belong
         echo json_encode([
             'success' => true,
             'message' => 'Login successful',
             'user' => [
-                'id' => $user['id'],
                 'username' => $user['username'],
                 'email' => $user['email'],
                 'profilePic' => $user['profile_pic'] ?? 'images/account.png',
                 'isLoggedIn' => true,
-                'role' => $user['role'],
                 'isStaff' => $isStaff,
                 'staffRole' => $staffRole
             ]
         ]);
     } else {
+        // silly error if password doesnt match
         echo json_encode(['success' => false, 'message' => 'Invalid username or password']);
     }
-} catch (PDOException $e) {
+
+    $stmt->close();
+    $staffStmt->close();
+    $conn->close();
+
+} catch (Exception $e) {
+    // silly error if something explodes in the try statements
     error_log("Login error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Login failed. Please try again.']);
 }

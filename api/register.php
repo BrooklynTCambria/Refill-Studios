@@ -40,18 +40,12 @@ if (strlen($username) < 3) {
     exit;
 }
 
-if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
-    echo json_encode(['success' => false, 'message' => 'Username can only contain letters, numbers, and underscores']);
-    exit;
-}
-
 try {
     // Check if username or email already exists
     $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
     $stmt->execute([$username, $email]);
     
     if ($stmt->rowCount() > 0) {
-        $existing = $stmt->fetch();
         $checkStmt = $pdo->prepare("SELECT username FROM users WHERE username = ? UNION SELECT username FROM users WHERE email = ?");
         $checkStmt->execute([$username, $email]);
         $existingUser = $checkStmt->fetch();
@@ -64,26 +58,12 @@ try {
         exit;
     }
 
-    // Create new user
+    // Create new user (default role is 'user')
     $password_hash = password_hash($password, PASSWORD_DEFAULT);
-    $stmt = $pdo->prepare("INSERT INTO users (email, username, password_hash, profile_pic, role) VALUES (?, ?, ?, 'images/account.png', 'user')");
+    $stmt = $pdo->prepare("INSERT INTO users (email, username, password_hash, role, profile_pic) VALUES (?, ?, ?, 'user', 'images/account.png')");
     
     if ($stmt->execute([$email, $username, $password_hash])) {
         $userId = $pdo->lastInsertId();
-        
-        // Generate session token
-        $sessionToken = bin2hex(random_bytes(32));
-        $expiresAt = date('Y-m-d H:i:s', strtotime('+30 days'));
-        
-        // Store session
-        $sessionStmt = $pdo->prepare("INSERT INTO sessions (user_id, session_token, ip_address, user_agent, expires_at) VALUES (?, ?, ?, ?, ?)");
-        $sessionStmt->execute([
-            $userId, 
-            $sessionToken, 
-            $_SERVER['REMOTE_ADDR'] ?? null,
-            $_SERVER['HTTP_USER_AGENT'] ?? null,
-            $expiresAt
-        ]);
         
         // Auto-login after registration
         $_SESSION['user_id'] = $userId;
@@ -92,13 +72,11 @@ try {
         $_SESSION['role'] = 'user';
         $_SESSION['profile_pic'] = 'images/account.png';
         $_SESSION['logged_in'] = true;
-        $_SESSION['session_token'] = $sessionToken;
         
         echo json_encode([
             'success' => true,
             'message' => 'Registration successful!',
             'user' => [
-                'id' => $userId,
                 'username' => $username,
                 'email' => $email,
                 'role' => 'user',
