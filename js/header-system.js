@@ -1,5 +1,6 @@
 // header-system.js - Universal Header System for All Pages
 
+// header-system.js - Updated createUniversalHeader function
 function createUniversalHeader() {
     const header = document.querySelector('header');
     if (!header) return;
@@ -7,8 +8,23 @@ function createUniversalHeader() {
     const rightSection = header.querySelector('.right');
     if (!rightSection) return;
     
-    // Make sure we have user data
-    if (!window.currentUser) {
+    // Make sure we have user data - check cookies too
+    if (!window.currentUser || !window.currentUser.isLoggedIn) {
+        // Check if there's a session token in cookies
+        const sessionToken = document.cookie.split('; ').find(row => row.startsWith('session_token='));
+        
+        if (sessionToken) {
+            // User might be logged in, wait for user-system to load
+            setTimeout(() => {
+                if (window.currentUser && window.currentUser.isLoggedIn) {
+                    createUniversalHeader(); // Recreate with correct data
+                } else {
+                    createUniversalHeader(); // Create with guest data
+                }
+            }, 100);
+            return;
+        }
+        
         window.currentUser = {
             username: 'Guest',
             role: 'user',
@@ -18,7 +34,7 @@ function createUniversalHeader() {
         
         // Try to load from localStorage
         const savedUser = JSON.parse(localStorage.getItem('refillUser'));
-        if (savedUser) {
+        if (savedUser && savedUser.isLoggedIn) {
             Object.assign(window.currentUser, savedUser);
             window.currentUser.isLoggedIn = true;
         }
@@ -149,26 +165,24 @@ function setupDropdownEvents() {
                 e.preventDefault();
                 e.stopPropagation();
                 if (confirm('Are you sure you want to logout?')) {
-                    // Clear user data
-                    localStorage.removeItem('currentUser');
-                    localStorage.removeItem('refillUser');
-                    localStorage.removeItem('profilePic');
-                    
-                    // Update current user object
-                    window.currentUser = {
-                        username: 'Guest',
-                        role: 'user',
-                        isLoggedIn: false,
-                        profilePic: 'images/account.png'
-                    };
-                    
-                    alert('Logged out successfully.');
-                    
-                    // Redirect or reload based on current page
-                    const currentPage = window.location.pathname;
-                    if (currentPage.includes('updates.html')) {
-                        window.location.reload();
+                    // Use the global logout function
+                    if (window.logoutUser) {
+                        window.logoutUser();
                     } else {
+                        // Fallback logout
+                        document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                        localStorage.removeItem('currentUser');
+                        localStorage.removeItem('refillUser');
+                        localStorage.removeItem('profilePic');
+                        
+                        window.currentUser = {
+                            username: 'Guest',
+                            role: 'user',
+                            isLoggedIn: false,
+                            profilePic: 'images/account.png'
+                        };
+                        
+                        alert('Logged out successfully.');
                         window.location.href = 'updates.html';
                     }
                 }

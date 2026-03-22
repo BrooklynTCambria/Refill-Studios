@@ -1,10 +1,6 @@
-// updated-create-post.js - Backend-connected Create Post Page
+// create-post.js - Fixed version
 
-let currentUser = {
-    username: 'Guest',
-    role: 'user'
-};
-
+let currentUser = null;
 let selectedImage = null;
 let formChanged = false;
 let imageDataUrl = null;
@@ -16,13 +12,49 @@ let submitBtn, cancelBtn, successMessage;
 let userInfoBanner, postingUsername, userRoleBadge;
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if user is admin or developer
-    if (!window.currentUser || 
-        (window.currentUser.role !== 'admin' && window.currentUser.role !== 'developer')) {
+    console.log('Create post page loaded');
+    
+    // Wait for user system to be ready
+    if (window.userSystemReady) {
+        window.userSystemReady.then((user) => {
+            checkUserAndInitialize(user);
+        });
+    } else {
+        setTimeout(() => {
+            if (window.currentUser) {
+                checkUserAndInitialize(window.currentUser);
+            } else {
+                console.error('No user data available');
+                alert('Please login first');
+                window.location.href = 'account.html';
+            }
+        }, 500);
+    }
+});
+
+function checkUserAndInitialize(user) {
+    console.log('Checking user for create post:', user);
+    
+    // Check if user is logged in
+    if (!user || !user.isLoggedIn) {
+        alert('Please login first');
+        window.location.href = 'account.html';
+        return;
+    }
+    
+    // Check if user has permissions
+    if (user.role !== 'admin' && user.role !== 'developer') {
         alert('Only admins and developers can create posts.');
         window.location.href = 'updates.html';
         return;
     }
+    
+    currentUser = user;
+    initializeCreatePostPage();
+}
+
+function initializeCreatePostPage() {
+    console.log('Initializing create post page with user:', currentUser);
     
     // Cache DOM elements
     cacheDOMElements();
@@ -36,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup navigation and event listeners
     setupNavigation();
     setupEventListeners();
-});
+}
 
 function cacheDOMElements() {
     form = document.getElementById('create-post-form');
@@ -58,10 +90,7 @@ function cacheDOMElements() {
 }
 
 function loadUserData() {
-    if (window.currentUser) {
-        currentUser = window.currentUser;
-        
-        // Update UI with user info
+    if (currentUser) {
         if (postingUsername) {
             postingUsername.textContent = currentUser.username;
         }
@@ -69,92 +98,105 @@ function loadUserData() {
         if (userRoleBadge) {
             userRoleBadge.textContent = currentUser.role.toUpperCase();
             
-            // Style based on role
             if (currentUser.role === 'admin') {
-                userInfoBanner.classList.add('admin');
+                if (userInfoBanner) userInfoBanner.classList.add('admin');
                 userRoleBadge.classList.add('admin');
             } else if (currentUser.role === 'developer') {
-                userInfoBanner.style.backgroundColor = '#2d4a2d';
-                userInfoBanner.style.color = '#a3d9a3';
+                if (userInfoBanner) userInfoBanner.style.backgroundColor = '#2d4a2d';
+                if (userInfoBanner) userInfoBanner.style.color = '#a3d9a3';
             }
         }
     }
 }
 
 function initializeForm() {
-    // Character counters
-    headerInput.addEventListener('input', updateHeaderCounter);
-    descInput.addEventListener('input', updateDescCounter);
+    if (headerInput) {
+        headerInput.addEventListener('input', updateHeaderCounter);
+    }
+    if (descInput) {
+        descInput.addEventListener('input', updateDescCounter);
+    }
     
-    // Track form changes
-    [headerInput, descInput].forEach(input => {
-        input.addEventListener('input', () => {
-            formChanged = true;
+    if (headerInput && descInput) {
+        [headerInput, descInput].forEach(input => {
+            input.addEventListener('input', () => {
+                formChanged = true;
+            });
         });
-    });
+    }
 }
 
 function updateHeaderCounter() {
     const length = this.value.length;
-    headerCounter.textContent = `${length}/100`;
-    
-    if (length > 90) {
-        headerCounter.classList.add('warning');
-        headerCounter.classList.remove('error');
-    } else if (length >= 100) {
-        headerCounter.classList.add('error');
-        headerCounter.classList.remove('warning');
-    } else {
-        headerCounter.classList.remove('warning', 'error');
+    if (headerCounter) {
+        headerCounter.textContent = `${length}/100`;
+        
+        if (length > 90) {
+            headerCounter.classList.add('warning');
+            headerCounter.classList.remove('error');
+        } else if (length >= 100) {
+            headerCounter.classList.add('error');
+            headerCounter.classList.remove('warning');
+        } else {
+            headerCounter.classList.remove('warning', 'error');
+        }
     }
 }
 
 function updateDescCounter() {
     const length = this.value.length;
-    descCounter.textContent = `${length}/1000`;
-    
-    if (length > 900) {
-        descCounter.classList.add('warning');
-        descCounter.classList.remove('error');
-    } else if (length >= 1000) {
-        descCounter.classList.add('error');
-        descCounter.classList.remove('warning');
-    } else {
-        descCounter.classList.remove('warning', 'error');
+    if (descCounter) {
+        descCounter.textContent = `${length}/1000`;
+        
+        if (length > 900) {
+            descCounter.classList.add('warning');
+            descCounter.classList.remove('error');
+        } else if (length >= 1000) {
+            descCounter.classList.add('error');
+            descCounter.classList.remove('warning');
+        } else {
+            descCounter.classList.remove('warning', 'error');
+        }
     }
 }
 
 function setupImageUploadListeners() {
-    // Click to upload
+    if (!imageUpload || !imageInput) return;
+    
     imageUpload.addEventListener('click', () => imageInput.click());
     
-    // Drag and drop
     imageUpload.addEventListener('dragover', handleDragOver);
     imageUpload.addEventListener('dragleave', handleDragLeave);
     imageUpload.addEventListener('drop', handleDrop);
     
-    // File input change
     imageInput.addEventListener('change', handleFileInput);
     
-    // Remove image
-    removeImageBtn.addEventListener('click', removeImage);
+    if (removeImageBtn) {
+        removeImageBtn.addEventListener('click', removeImage);
+    }
 }
 
 function handleDragOver(e) {
     e.preventDefault();
-    imageUpload.style.borderColor = '#888';
-    imageUpload.style.backgroundColor = '#464646';
+    if (imageUpload) {
+        imageUpload.style.borderColor = '#888';
+        imageUpload.style.backgroundColor = '#464646';
+    }
 }
 
 function handleDragLeave() {
-    imageUpload.style.borderColor = '#525252';
-    imageUpload.style.backgroundColor = '#414141';
+    if (imageUpload) {
+        imageUpload.style.borderColor = '#525252';
+        imageUpload.style.backgroundColor = '#414141';
+    }
 }
 
 function handleDrop(e) {
     e.preventDefault();
-    imageUpload.style.borderColor = '#525252';
-    imageUpload.style.backgroundColor = '#414141';
+    if (imageUpload) {
+        imageUpload.style.borderColor = '#525252';
+        imageUpload.style.backgroundColor = '#414141';
+    }
     
     if (e.dataTransfer.files.length) {
         handleImageFile(e.dataTransfer.files[0]);
@@ -168,13 +210,11 @@ function handleFileInput(e) {
 }
 
 function handleImageFile(file) {
-    // Check if file is an image
     if (!file.type.startsWith('image/')) {
         alert('Please select an image file (JPEG, PNG, GIF, etc.)');
         return;
     }
     
-    // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
         alert('Image size should be less than 5MB');
         return;
@@ -182,13 +222,12 @@ function handleImageFile(file) {
     
     selectedImage = file;
     
-    // Read file as Data URL for storage
     const reader = new FileReader();
     reader.onload = function(e) {
         imageDataUrl = e.target.result;
-        previewImage.src = imageDataUrl;
-        imagePreview.style.display = 'block';
-        imageUpload.style.display = 'none';
+        if (previewImage) previewImage.src = imageDataUrl;
+        if (imagePreview) imagePreview.style.display = 'block';
+        if (imageUpload) imageUpload.style.display = 'none';
         formChanged = true;
     };
     reader.readAsDataURL(file);
@@ -197,10 +236,10 @@ function handleImageFile(file) {
 function removeImage() {
     selectedImage = null;
     imageDataUrl = null;
-    previewImage.src = '';
-    imagePreview.style.display = 'none';
-    imageUpload.style.display = 'block';
-    imageInput.value = '';
+    if (previewImage) previewImage.src = '';
+    if (imagePreview) imagePreview.style.display = 'none';
+    if (imageUpload) imageUpload.style.display = 'block';
+    if (imageInput) imageInput.value = '';
     formChanged = true;
 }
 
@@ -209,14 +248,14 @@ async function handleFormSubmit(e) {
     
     if (!validateForm()) return;
     
-    // Disable submit button
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Posting...';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Posting...';
+    }
     
-    // Create post object
     const post = {
-        header: headerInput.value.trim(),
-        description: descInput.value.trim(),
+        header: headerInput ? headerInput.value.trim() : '',
+        description: descInput ? descInput.value.trim() : '',
         image: imageDataUrl ? {
             dataUrl: imageDataUrl,
             name: selectedImage ? selectedImage.name : 'image',
@@ -235,45 +274,44 @@ async function handleFormSubmit(e) {
         const data = await response.json();
         
         if (data.success) {
-            // Show success message
-            successMessage.classList.add('active');
+            if (successMessage) successMessage.classList.add('active');
             
-            // Save to session for notification
             sessionStorage.setItem('newPostAdded', 'true');
             sessionStorage.setItem('latestPost', JSON.stringify({
                 header: post.header,
                 id: data.id
             }));
             
-            // Redirect after delay
             setTimeout(() => {
                 window.location.href = 'updates.html';
             }, 3000);
         } else {
             alert('Failed to create post. Please try again.');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Post';
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Post';
+            }
         }
     } catch (error) {
         console.error('Failed to create post:', error);
         alert('Failed to create post. Please try again.');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Post';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Post';
+        }
     }
 }
 
 function validateForm() {
-    // Check header
-    if (!headerInput.value.trim()) {
+    if (!headerInput || !headerInput.value.trim()) {
         alert('Please enter a post header');
-        headerInput.focus();
+        if (headerInput) headerInput.focus();
         return false;
     }
     
-    // Check description
-    if (!descInput.value.trim()) {
+    if (!descInput || !descInput.value.trim()) {
         alert('Please enter a post description');
-        descInput.focus();
+        if (descInput) descInput.focus();
         return false;
     }
     
@@ -281,37 +319,46 @@ function validateForm() {
 }
 
 function setupNavigation() {
-    // Navigation buttons
-    document.getElementById('index-button').addEventListener('click', () => {
-        if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) return;
-        window.location.href = 'index.html';
-    });
+    const indexBtn = document.getElementById('index-button');
+    const gamesBtn = document.getElementById('games-button');
+    const updatesBtn = document.getElementById('updates-button');
     
-    document.getElementById('games-button').addEventListener('click', () => {
-        if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) return;
-        window.location.href = 'games.html';
-    });
+    if (indexBtn) {
+        indexBtn.addEventListener('click', () => {
+            if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) return;
+            window.location.href = 'index.html';
+        });
+    }
     
-    document.getElementById('updates-button').addEventListener('click', () => {
-        if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) return;
-        window.location.href = 'updates.html';
-    });
+    if (gamesBtn) {
+        gamesBtn.addEventListener('click', () => {
+            if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) return;
+            window.location.href = 'games.html';
+        });
+    }
     
-    // Cancel button
-    cancelBtn.addEventListener('click', () => {
-        if (formChanged && !confirm('You have unsaved changes. Are you sure you want to cancel?')) return;
-        window.location.href = 'updates.html';
-    });
+    if (updatesBtn) {
+        updatesBtn.addEventListener('click', () => {
+            if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) return;
+            window.location.href = 'updates.html';
+        });
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            if (formChanged && !confirm('You have unsaved changes. Are you sure you want to cancel?')) return;
+            window.location.href = 'updates.html';
+        });
+    }
 }
 
 function setupEventListeners() {
-    // Form submission
-    form.addEventListener('submit', handleFormSubmit);
+    if (form) {
+        form.addEventListener('submit', handleFormSubmit);
+    }
     
-    // Image upload
     setupImageUploadListeners();
     
-    // Warn before leaving page with unsaved changes
     window.addEventListener('beforeunload', (e) => {
         if (formChanged) {
             e.preventDefault();

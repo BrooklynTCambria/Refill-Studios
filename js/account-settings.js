@@ -1,8 +1,29 @@
-// updated-account-settings.js - Backend-connected Account Settings
+// account-settings.js - Updated version
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Wait for user system to be ready
+    if (window.userSystemReady) {
+        window.userSystemReady.then((user) => {
+            initializeAccountSettings(user);
+        });
+    } else {
+        // Fallback: wait a bit and check
+        setTimeout(() => {
+            if (window.currentUser) {
+                initializeAccountSettings(window.currentUser);
+            } else {
+                alert('Please login first');
+                window.location.href = 'account.html';
+            }
+        }, 200);
+    }
+});
+
+function initializeAccountSettings(user) {
+    console.log('Initializing account settings with user:', user);
+    
     // Check if user is logged in
-    if (!window.currentUser || !window.currentUser.isLoggedIn) {
+    if (!user || !user.isLoggedIn) {
         alert('Please login first');
         window.location.href = 'account.html';
         return;
@@ -21,66 +42,80 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load user data into form
     function loadUserData() {
-        profilePreview.src = window.currentUser.profilePic || 'images/account.png';
-        if (profileHeader) profileHeader.src = window.currentUser.profilePic || 'images/account.png';
-        usernameInput.value = window.currentUser.username;
+        if (profilePreview) {
+            profilePreview.src = user.profilePic || 'images/account.png';
+        }
+        if (profileHeader) {
+            profileHeader.src = user.profilePic || 'images/account.png';
+        }
+        if (usernameInput) {
+            usernameInput.value = user.username;
+        }
         updateCounter();
     }
     
     // Update character counter
     function updateCounter() {
-        usernameCounter.textContent = `${usernameInput.value.length}/20`;
-        usernameCounter.className = 'char-counter';
-        
-        if (usernameInput.value.length > 18) {
-            usernameCounter.classList.add('warning');
+        if (usernameCounter && usernameInput) {
+            usernameCounter.textContent = `${usernameInput.value.length}/20`;
+            usernameCounter.className = 'char-counter';
+            
+            if (usernameInput.value.length > 18) {
+                usernameCounter.classList.add('warning');
+            }
         }
     }
     
     // Handle profile picture upload
-    uploadBtn.addEventListener('click', () => {
-        profileUpload.click();
-    });
+    if (uploadBtn && profileUpload) {
+        uploadBtn.addEventListener('click', () => {
+            profileUpload.click();
+        });
+    }
     
-    profileUpload.addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        // Check if it's an image
-        if (!file.type.match('image.*')) {
-            alert('Please select an image file.');
-            return;
-        }
-        
-        // Check file size (max 2MB)
-        if (file.size > 2 * 1024 * 1024) {
-            alert('Image must be less than 2MB.');
-            return;
-        }
-        
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const dataUrl = e.target.result;
+    if (profileUpload) {
+        profileUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
             
-            // Update preview images
-            profilePreview.src = dataUrl;
-            if (profileHeader) profileHeader.src = dataUrl;
+            // Check if it's an image
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file.');
+                return;
+            }
             
-            // Save to localStorage temporarily (will be synced on save)
-            localStorage.setItem('profilePic', dataUrl);
-            window.currentUser.profilePic = dataUrl;
-        };
-        
-        reader.readAsDataURL(file);
-    });
+            // Check file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Image must be less than 2MB.');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                
+                // Update preview images
+                if (profilePreview) profilePreview.src = dataUrl;
+                if (profileHeader) profileHeader.src = dataUrl;
+                
+                // Save to localStorage temporarily (will be synced on save)
+                localStorage.setItem('profilePic', dataUrl);
+                if (window.currentUser) window.currentUser.profilePic = dataUrl;
+            };
+            
+            reader.readAsDataURL(file);
+        });
+    }
     
     // Handle character counter
-    usernameInput.addEventListener('input', updateCounter);
+    if (usernameInput) {
+        usernameInput.addEventListener('input', updateCounter);
+    }
     
     // Save changes
     async function saveChanges() {
         // Validate input
-        if (!usernameInput.value.trim()) {
+        if (!usernameInput || !usernameInput.value.trim()) {
             alert('Username cannot be empty!');
             return;
         }
@@ -98,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Prepare settings to update
         const settings = {};
         
-        if (usernameInput.value.trim() !== window.currentUser.username) {
+        if (usernameInput.value.trim() !== user.username) {
             settings.username = usernameInput.value.trim();
         }
         
@@ -115,55 +150,73 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Update local user object
                 if (settings.username) {
-                    window.currentUser.username = settings.username;
+                    user.username = settings.username;
+                    if (window.currentUser) window.currentUser.username = settings.username;
                 }
                 if (settings.profile_pic) {
-                    window.currentUser.profilePic = settings.profile_pic;
+                    user.profilePic = settings.profile_pic;
+                    if (window.currentUser) window.currentUser.profilePic = settings.profile_pic;
                 }
                 
                 // Update header if it exists
                 const headerUsername = document.getElementById('account-link-text');
-                if (headerUsername) headerUsername.textContent = window.currentUser.username;
+                if (headerUsername) headerUsername.textContent = user.username;
                 
                 const headerPic = document.getElementById('profile-pic-header');
-                if (headerPic) headerPic.src = window.currentUser.profilePic;
+                if (headerPic) headerPic.src = user.profilePic;
             }
         } else {
             showSaveSuccess();
         }
     }
     
-    saveBtn.addEventListener('click', saveChanges);
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveChanges);
+    }
     
     // Show save success message
     function showSaveSuccess() {
-        saveSuccess.classList.add('active');
-        setTimeout(() => {
-            saveSuccess.classList.remove('active');
-        }, 3000);
+        if (saveSuccess) {
+            saveSuccess.classList.add('active');
+            setTimeout(() => {
+                saveSuccess.classList.remove('active');
+            }, 3000);
+        }
     }
     
     // Cancel button
-    cancelBtn.addEventListener('click', function() {
-        if (confirm('Discard all changes?')) {
-            loadUserData(); // Reload original data
-            localStorage.removeItem('profilePic'); // Clear temporary profile pic
-        }
-    });
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            if (confirm('Discard all changes?')) {
+                loadUserData(); // Reload original data
+                localStorage.removeItem('profilePic'); // Clear temporary profile pic
+            }
+        });
+    }
     
     // Navigation
-    document.getElementById('index-button').addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
+    const indexBtn = document.getElementById('index-button');
+    const gamesBtn = document.getElementById('games-button');
+    const updatesBtn = document.getElementById('updates-button');
     
-    document.getElementById('games-button').addEventListener('click', () => {
-        window.location.href = 'games.html';
-    });
+    if (indexBtn) {
+        indexBtn.addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+    }
     
-    document.getElementById('updates-button').addEventListener('click', () => {
-        window.location.href = 'updates.html';
-    });
+    if (gamesBtn) {
+        gamesBtn.addEventListener('click', () => {
+            window.location.href = 'games.html';
+        });
+    }
+    
+    if (updatesBtn) {
+        updatesBtn.addEventListener('click', () => {
+            window.location.href = 'updates.html';
+        });
+    }
     
     // Initialize
     loadUserData();
-});
+}

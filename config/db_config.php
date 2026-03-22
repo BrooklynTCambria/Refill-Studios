@@ -2,8 +2,8 @@
 // Database configuration
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'refill_studios');
-define('DB_USER', 'root'); // Default UWAMP username
-define('DB_PASS', 'root'); // Default UWAMP password (empty)
+define('DB_USER', 'root');
+define('DB_PASS', 'root'); // Change this if your MySQL password is different
 
 // Create connection
 function getDBConnection() {
@@ -21,7 +21,7 @@ function getDBConnection() {
         return $pdo;
     } catch (PDOException $e) {
         error_log("Database connection failed: " . $e->getMessage());
-        die(json_encode(['error' => 'Database connection failed']));
+        return null;
     }
 }
 
@@ -32,6 +32,8 @@ function generateSessionToken() {
 
 function createSession($userId) {
     $pdo = getDBConnection();
+    if (!$pdo) return null;
+    
     $token = generateSessionToken();
     $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
     
@@ -45,6 +47,8 @@ function validateSession($token) {
     if (!$token) return null;
     
     $pdo = getDBConnection();
+    if (!$pdo) return null;
+    
     $stmt = $pdo->prepare("
         SELECT u.* FROM users u 
         JOIN user_sessions s ON u.id = s.user_id 
@@ -56,6 +60,8 @@ function validateSession($token) {
 
 function deleteSession($token) {
     $pdo = getDBConnection();
+    if (!$pdo) return;
+    
     $stmt = $pdo->prepare("DELETE FROM user_sessions WHERE session_token = ?");
     $stmt->execute([$token]);
 }

@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'db.php';
+require_once 'config/db_config.php';
 
 $error = '';
 $success = '';
@@ -31,9 +31,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("INSERT INTO users (email, username, password_hash) VALUES (?, ?, ?)");
             
             if ($stmt->execute([$email, $username, $password_hash])) {
-                $success = 'Registration successful! You can now login.';
-                // Clear form
-                $email = $username = '';
+                // Auto login
+                $userId = $pdo->lastInsertId();
+                $token = createSession($userId);
+                setcookie('session_token', $token, time() + (30 * 24 * 60 * 60), '/');
+                
+                header('Location: updates.html');
+                exit();
             } else {
                 $error = 'Registration failed. Please try again.';
             }

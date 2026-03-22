@@ -1,77 +1,21 @@
-// updated-accountManager.js - Backend-connected Account Manager
-
-function getCurrentPage() {
-    let path = window.location.pathname;
-    let page = path.split("/").pop(); 
-    
-    if (page === "register.html") return "Register";
-    if (page === "account.html") return "Account";
-    if (page === "updates.html") return "Updates";
-    if (page === "account-settings.html") return "Settings";
-    return "";
-}
-
-function account() {
-    if (getCurrentPage() === "Account") {
-        console.log("Already on account page, not refreshing");
-        return;
-    }
-    console.log("Navigating to account page");
-    window.location.href = "account.html";
-}
-
-function signUp() {
-    if (getCurrentPage() === "Register") {
-        console.log("Already on register page, not refreshing");
-        return;
-    }
-    
-    console.log("Navigating to register page");
-    window.location.href = "register.html";
-}
-
-async function handleLogin() {
-    const usernameInput = document.getElementById('username-input') || 
-                         document.querySelector('.input-box[placeholder="Username"]');
-    const passwordInput = document.getElementById('password-input') || 
-                         document.querySelector('.input-box[placeholder="Password"]');
-    
-    if (!usernameInput || !passwordInput) {
-        console.error('Login inputs not found');
-        return;
-    }
-    
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value.trim();
-    
-    if (!username || !password) {
-        alert('Please enter both username and password');
-        return;
-    }
-    
-    // Use the global login function
-    if (window.loginUser) {
-        const result = await window.loginUser(username, password);
-        
-        if (result.success) {
-            alert('Login successful!');
-            window.location.href = 'updates.html';
-        } else {
-            alert(result.message || 'Invalid username or password');
-        }
-    } else {
-        alert('Login system not available');
-    }
-}
-
 async function handleRegister() {
-    const emailInput = document.querySelector('.input-box[placeholder="Example@gmail.com"]');
-    const usernameInput = document.querySelector('.input-box[placeholder="Username"]');
-    const passwordInput = document.querySelector('.input-box[type="password"]');
-    const confirmInput = document.querySelectorAll('.input-box[type="password"]')[1];
+    console.log('handleRegister called'); // Debug log
+    
+    const emailInput = document.getElementById('email-input');
+    const usernameInput = document.getElementById('username-input');
+    const passwordInput = document.getElementById('password-input');
+    const confirmInput = document.getElementById('confirm-password-input');
+    
+    console.log('Inputs found:', {
+        email: emailInput,
+        username: usernameInput,
+        password: passwordInput,
+        confirm: confirmInput
+    });
     
     if (!emailInput || !usernameInput || !passwordInput || !confirmInput) {
         console.error('Register inputs not found');
+        alert('Form inputs not found. Please refresh the page.');
         return;
     }
     
@@ -79,6 +23,8 @@ async function handleRegister() {
     const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
     const confirmPassword = confirmInput.value.trim();
+    
+    console.log('Form data:', { email, username, password: '***', confirmPassword: '***' });
     
     // Validation
     if (!email || !username || !password || !confirmPassword) {
@@ -109,112 +55,47 @@ async function handleRegister() {
     
     // Use the global register function
     if (window.registerUser) {
-        const result = await window.registerUser(username, email, password);
-        
-        if (result.success) {
-            alert('Registration successful! Welcome to Refill Studios.');
-            window.location.href = 'updates.html';
-        } else {
-            alert(result.message || 'Registration failed');
+        console.log('Calling registerUser...');
+        try {
+            const result = await window.registerUser(username, email, password);
+            console.log('Registration result:', result);
+            
+            if (result.success) {
+                alert('Registration successful! Welcome to Refill Studios.');
+                window.location.href = 'updates.html';
+            } else {
+                alert(result.message || 'Registration failed. Please try again.');
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            alert('Registration failed: ' + error.message);
         }
     } else {
-        alert('Registration system not available');
+        console.error('window.registerUser is not available');
+        alert('Registration system not available. Please check console for errors.');
     }
 }
 
-// Setup event listeners
+// Wait for DOM to load and attach the event listener
 document.addEventListener('DOMContentLoaded', function() {
-    // Setup navigation buttons (available on all pages)
-    const indexButton = document.getElementById('index-button');
-    const gamesButton = document.getElementById('games-button');
-    const updatesButton = document.getElementById('updates-button');
+    console.log('DOM loaded, looking for register button...');
     
-    if (indexButton) indexButton.addEventListener('click', () => window.location.href = 'index.html');
-    if (gamesButton) gamesButton.addEventListener('click', () => window.location.href = 'games.html');
-    if (updatesButton) updatesButton.addEventListener('click', () => window.location.href = 'updates.html');
+    // Try to find the register button (could be register-button or sign-up-button)
+    const registerBtn = document.getElementById('register-button') || document.getElementById('sign-up-button');
     
-    // Setup account link
-    const accountLink = document.getElementById("account-link");
-    if (accountLink && !accountLink.id.includes('text')) {
-        accountLink.addEventListener("click", account);
+    if (registerBtn) {
+        console.log('Register button found:', registerBtn);
+        registerBtn.addEventListener('click', handleRegister);
+    } else {
+        console.error('Register button not found! Looking for #register-button or #sign-up-button');
     }
     
-    // Setup sign-up button (on login page)
-    const signUpButton = document.getElementById("sign-up-button");
-    if (signUpButton) {
-        signUpButton.addEventListener("click", signUp);
-    }
-    
-    // Setup "Here" link on register page
-    const accountLinkHere = document.getElementById('account-link-here');
-    if (accountLinkHere) {
-        accountLinkHere.addEventListener("click", account);
-    }
-    
-    // Setup login/register forms based on current page
-    const currentPage = getCurrentPage();
-    
-    if (currentPage === "Account") {
-        const loginButton = document.getElementById("log-in-button");
-        if (loginButton) {
-            loginButton.addEventListener("click", handleLogin);
-        }
-        
-        // Also allow Enter key in password field
-        const passwordInput = document.getElementById('password-input') ||
-                            document.querySelector('.input-box[placeholder="Password"]');
-        if (passwordInput) {
-            passwordInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    handleLogin();
-                }
-            });
-        }
-    }
-    
-    if (currentPage === "Register") {
-        const registerButton = document.querySelector('.account-button');
-        
-        if (registerButton) {
-            registerButton.addEventListener("click", handleRegister);
-        }
-        
-        // Allow Enter key in last password field
-        const passwordInputs = document.querySelectorAll('.input-box[type="password"]');
-        if (passwordInputs.length > 1) {
-            passwordInputs[1].addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    handleRegister();
-                }
-            });
-        }
+    // Also handle the "Already have an account? click Here" link
+    const accountLink = document.getElementById('account-link-here');
+    if (accountLink) {
+        accountLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = 'account.html';
+        });
     }
 });
-
-// Logout function
-async function logout() {
-    if (window.logoutUser) {
-        await window.logoutUser();
-    } else {
-        // Fallback
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('refillUser');
-        alert('Logged out successfully.');
-        window.location.href = 'account.html';
-    }
-}
-
-// Check if user is logged in
-function isLoggedIn() {
-    return window.currentUser?.isLoggedIn || false;
-}
-
-// Get current user data
-function getCurrentUser() {
-    return window.currentUser || null;
-}
-
-// Make functions available globally
-window.logout = logout;
-window.isLoggedIn = isLoggedIn;
-window.getCurrentUser = getCurrentUser;
