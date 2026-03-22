@@ -364,6 +364,7 @@ function checkForNewPostNotification() {
     }
 }
 
+// Also update the user role indicator display
 function updateUIForUserRole() {
     const userRoleIndicator = document.getElementById('user-role-indicator');
     const userRoleNote = document.getElementById('user-role-note');
@@ -374,16 +375,12 @@ function updateUIForUserRole() {
         let roleText = '';
         let roleClass = 'user-role-indicator';
         
-        switch(window.currentUser.role) {
-            case 'admin':
-                roleText = `Welcome, ${window.currentUser.username}! (ADMIN)`;
-                roleClass += ' admin-badge';
-                break;
-            case 'developer':
-                roleText = `Welcome, ${window.currentUser.username}! (DEVELOPER)`;
-                break;
-            default:
-                roleText = `Welcome, ${window.currentUser.username}!`;
+        if (window.currentUser.role === 'Default') {
+            roleText = `Welcome, ${window.currentUser.username}! (Default - Comment Only)`;
+            roleClass += ' default-badge';
+        } else {
+            roleText = `Welcome, ${window.currentUser.username}! (${window.currentUser.role} - Can Create Posts)`;
+            roleClass += ' creative-badge';
         }
         
         userRoleIndicator.textContent = roleText;
@@ -392,16 +389,16 @@ function updateUIForUserRole() {
     
     // Update note
     if (userRoleNote) {
-        if (window.currentUser.role === 'admin' || window.currentUser.role === 'developer') {
-            userRoleNote.innerHTML = `Click on a post to view and add comments. <span style="color:#ffcc00;">You can create new posts.</span>`;
+        if (window.currentUser.can_post) {
+            userRoleNote.innerHTML = `Click on a post to view and add comments. <span style="color:#a3d9a3;">✓ You can create new posts.</span>`;
         } else {
-            userRoleNote.textContent = 'Click on a post to view and add comments.';
+            userRoleNote.innerHTML = `Click on a post to view and add comments. <span style="color:#ffcc00;">ℹ️ Select a creative role in Account Settings to create posts.</span>`;
         }
     }
     
     // Show/hide admin add post button
     if (adminAddBtn) {
-        if (window.currentUser.role === 'admin' || window.currentUser.role === 'developer') {
+        if (window.currentUser.can_post) {
             adminAddBtn.style.display = 'flex';
         } else {
             adminAddBtn.style.display = 'none';
@@ -435,13 +432,15 @@ function setupEventListeners() {
     const adminAddBtn = document.getElementById('admin-add-post');
     if (adminAddBtn) {
         adminAddBtn.addEventListener('click', () => {
-            if (window.currentUser.role === 'admin' || window.currentUser.role === 'developer') {
+            if (window.currentUser.can_post) {
                 window.location.href = 'create-post.html';
             } else {
-                alert('Only admins and developers can create posts.');
+                alert('You need to select a creative role (Artist, Programmer, Modeler, etc.) to create posts.\n\nGo to Account Settings to select your role.');
+                window.location.href = 'account-settings.html';
             }
         });
     }
+
     
     // Comment system
     const addCommentBtn = document.getElementById('add-comment-btn');

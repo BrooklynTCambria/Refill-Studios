@@ -1,6 +1,7 @@
-// account-settings.js - With simple delete button
+// account-settings.js - Updated with role dropdown
 
 let currentUser = null;
+let availableRoles = [];
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Wait for user system to be ready
@@ -16,8 +17,41 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
+    // Fetch available roles
+    await loadAvailableRoles();
     initializeAccountSettings(currentUser);
 });
+
+async function loadAvailableRoles() {
+    try {
+        const response = await fetch('api/users.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_roles' })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            availableRoles = result.roles;
+        } else {
+            console.error('Failed to load roles:', result.message);
+            // Fallback roles
+            availableRoles = [
+                { role_name: 'Default', can_post: false, is_admin: false },
+                { role_name: 'Artist', can_post: true, is_admin: false },
+                { role_name: 'Programmer', can_post: true, is_admin: false },
+                { role_name: 'Modeler', can_post: true, is_admin: false },
+                { role_name: 'Sound Designer', can_post: true, is_admin: false },
+                { role_name: 'Game Designer', can_post: true, is_admin: false },
+                { role_name: 'Writer', can_post: true, is_admin: false },
+                { role_name: 'Animator', can_post: true, is_admin: false },
+                { role_name: 'UI/UX Designer', can_post: true, is_admin: false }
+            ];
+        }
+    } catch (error) {
+        console.error('Error loading roles:', error);
+    }
+}
 
 function initializeAccountSettings(user) {
     console.log('Initializing account settings with user:', user);
@@ -31,8 +65,89 @@ function initializeAccountSettings(user) {
     const fileInput = document.getElementById('profile-upload');
     const saveSuccess = document.getElementById('save-success');
     const deleteAccountBtn = document.getElementById('delete-account-btn');
+    
+    // Create role dropdown if it doesn't exist
+    let roleSelect = document.getElementById('role-select');
+    if (!roleSelect) {
+        const roleContainer = document.createElement('div');
+        roleContainer.className = 'role-select-container';
+        roleContainer.style.marginTop = '20px';
+        roleContainer.style.marginBottom = '20px';
+        
+        const roleLabel = document.createElement('label');
+        roleLabel.textContent = 'Select Your Role:';
+        roleLabel.style.display = 'block';
+        roleLabel.style.marginBottom = '8px';
+        roleLabel.style.color = '#d0d0d0';
+        roleLabel.style.fontWeight = 'bold';
+        
+        roleSelect = document.createElement('select');
+        roleSelect.id = 'role-select';
+        roleSelect.className = 'role-dropdown';
+        roleSelect.style.width = '100%';
+        roleSelect.style.padding = '10px';
+        roleSelect.style.backgroundColor = '#333';
+        roleSelect.style.color = 'white';
+        roleSelect.style.border = '2px solid #525252';
+        roleSelect.style.borderRadius = '5px';
+        roleSelect.style.fontSize = '14px';
+        roleSelect.style.cursor = 'pointer';
+        
+        // Add role description
+        const roleDesc = document.createElement('p');
+        roleDesc.id = 'role-description';
+        roleDesc.style.fontSize = '12px';
+        roleDesc.style.color = '#aaa';
+        roleDesc.style.marginTop = '8px';
+        roleDesc.style.fontStyle = 'italic';
+        
+        roleContainer.appendChild(roleLabel);
+        roleContainer.appendChild(roleSelect);
+        roleContainer.appendChild(roleDesc);
+        
+        // Insert after username input
+        const usernameContainer = document.querySelector('.username-input-container');
+        usernameContainer.insertAdjacentElement('afterend', roleContainer);
+    }
 
     let newProfilePicData = null;
+
+    // Populate role dropdown
+    if (roleSelect) {
+        roleSelect.innerHTML = '';
+        availableRoles.forEach(role => {
+            // Don't show admin option to regular users
+            if (role.is_admin && user.role !== 'Admin') {
+                return;
+            }
+            
+            const option = document.createElement('option');
+            option.value = role.role_name;
+            option.textContent = role.role_name;
+            if (role.role_name === user.role) {
+                option.selected = true;
+            }
+            roleSelect.appendChild(option);
+        });
+        
+        // Update description when role changes
+        roleSelect.addEventListener('change', () => {
+            const selectedRole = availableRoles.find(r => r.role_name === roleSelect.value);
+            const descElement = document.getElementById('role-description');
+            if (descElement && selectedRole) {
+                if (selectedRole.can_post) {
+                    descElement.textContent = `✓ As a ${selectedRole.role_name}, you will be able to create and publish posts.`;
+                    descElement.style.color = '#a3d9a3';
+                } else {
+                    descElement.textContent = `ℹ️ As a ${selectedRole.role_name}, you can only comment on posts. Select a creative role to gain posting permissions.`;
+                    descElement.style.color = '#ffcc00';
+                }
+            }
+        });
+        
+        // Trigger initial description
+        roleSelect.dispatchEvent(new Event('change'));
+    }
 
     // Load user data into form
     if (profilePreview) {
@@ -115,6 +230,7 @@ function initializeAccountSettings(user) {
     if (saveBtn) {
         saveBtn.addEventListener('click', async () => {
             const newUsername = usernameInput?.value.trim();
+            const selectedRole = roleSelect?.value;
             
             if (!newUsername) {
                 alert('Username cannot be empty');
@@ -139,6 +255,10 @@ function initializeAccountSettings(user) {
                     username: newUsername
                 };
                 
+                if (selectedRole && selectedRole !== currentUser.role) {
+                    updateData.selected_role = selectedRole;
+                }
+                
                 if (newProfilePicData) {
                     updateData.profile_pic = newProfilePicData;
                 }
@@ -157,9 +277,19 @@ function initializeAccountSettings(user) {
                         currentUser.profilePic = newProfilePicData;
                     }
                     
+                    if (result.user) {
+                        currentUser.role = result.user.role;
+                        currentUser.can_post = result.user.can_post;
+                    } else if (selectedRole) {
+                        currentUser.role = selectedRole;
+                        const roleInfo = availableRoles.find(r => r.role_name === selectedRole);
+                        currentUser.can_post = roleInfo ? roleInfo.can_post : false;
+                    }
+                    
                     localStorage.setItem('refillUser', JSON.stringify({
                         username: currentUser.username,
                         role: currentUser.role,
+                        can_post: currentUser.can_post,
                         isLoggedIn: true,
                         profilePic: currentUser.profilePic
                     }));
@@ -169,6 +299,8 @@ function initializeAccountSettings(user) {
                         if (newProfilePicData) {
                             window.currentUser.profilePic = newProfilePicData;
                         }
+                        window.currentUser.role = currentUser.role;
+                        window.currentUser.can_post = currentUser.can_post;
                     }
                     
                     if (saveSuccess) {
@@ -186,6 +318,16 @@ function initializeAccountSettings(user) {
                         }, 100);
                     }
                     
+                    // Show success message with role info
+                    if (selectedRole && selectedRole !== currentUser.role) {
+                        const roleInfo = availableRoles.find(r => r.role_name === selectedRole);
+                        if (roleInfo && roleInfo.can_post) {
+                            alert(`Role updated to ${selectedRole}! You can now create posts.`);
+                        } else if (roleInfo && !roleInfo.can_post) {
+                            alert(`Role updated to ${selectedRole}. You can comment on posts but cannot create posts.`);
+                        }
+                    }
+                    
                 } else {
                     alert(result.message || 'Failed to save settings');
                 }
@@ -199,17 +341,15 @@ function initializeAccountSettings(user) {
         });
     }
     
-    // SIMPLE DELETE ACCOUNT BUTTON - Just a confirmation dialog
+    // Delete account button
     if (deleteAccountBtn) {
         deleteAccountBtn.addEventListener('click', async () => {
-            // Simple are you sure dialog
             const confirmed = confirm('Are you sure you want to delete your account? This action cannot be undone.');
             
             if (!confirmed) {
                 return;
             }
             
-            // Ask for password
             const password = prompt('Please enter your password to confirm:');
             
             if (!password) {
@@ -217,7 +357,6 @@ function initializeAccountSettings(user) {
                 return;
             }
             
-            // Show deleting state
             const originalText = deleteAccountBtn.textContent;
             deleteAccountBtn.textContent = 'deleting...';
             deleteAccountBtn.disabled = true;
@@ -234,19 +373,17 @@ function initializeAccountSettings(user) {
                 if (result.success) {
                     alert('Your account has been deleted. Goodbye!');
                     
-                    // Clear all local data
                     localStorage.clear();
                     document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                     
-                    // Reset current user
                     window.currentUser = {
                         username: 'Guest',
-                        role: 'user',
+                        role: 'Default',
+                        can_post: false,
                         isLoggedIn: false,
                         profilePic: 'images/account.png'
                     };
                     
-                    // Redirect to home page
                     window.location.href = 'index.html';
                 } else {
                     alert(result.message || 'Failed to delete account. Incorrect password?');

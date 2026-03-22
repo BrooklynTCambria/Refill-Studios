@@ -20,6 +20,24 @@ if ($method === 'POST') {
         
         $data = json_decode(file_get_contents('php://input'), true);
         
+        // Validate input
+        if (empty($data['postId']) || empty($data['text'])) {
+            echo json_encode(['error' => 'Post ID and comment text are required']);
+            return;
+        }
+        
+        // Check if user is a developer (for dev badge)
+        $isDev = false;
+        
+        // Check using new selected_role
+        if (isset($user['selected_role']) && $user['selected_role'] !== 'Default') {
+            $isDev = true;
+        }
+        // Check using old role
+        else if (isset($user['role']) && in_array($user['role'], ['admin', 'developer'])) {
+            $isDev = true;
+        }
+        
         $stmt = $pdo->prepare("
             INSERT INTO comments (post_id, username, user_id, text, is_dev) 
             VALUES (?, ?, ?, ?, ?)
@@ -29,12 +47,14 @@ if ($method === 'POST') {
             $user['username'],
             $user['id'],
             $data['text'],
-            in_array($user['role'], ['admin', 'developer']) ? 1 : 0
+            $isDev ? 1 : 0
         ]);
         
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'message' => 'Comment added successfully']);
     } catch (Exception $e) {
-        echo json_encode(['error' => $e->getMessage()]);
+        error_log("Error adding comment: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to add comment: ' . $e->getMessage()]);
     }
 } elseif ($method === 'DELETE') {
     try {
@@ -66,11 +86,20 @@ if ($method === 'POST') {
             return;
         }
         
+        // Check if user is admin
+        $isAdmin = false;
+        if (isset($user['role']) && $user['role'] === 'admin') {
+            $isAdmin = true;
+        }
+        if (isset($user['selected_role']) && $user['selected_role'] === 'Admin') {
+            $isAdmin = true;
+        }
+        
         // Allow if user is admin OR user owns the comment
-        if ($user['role'] === 'admin' || $comment['user_id'] == $user['id']) {
+        if ($isAdmin || $comment['user_id'] == $user['id']) {
             $stmt = $pdo->prepare("DELETE FROM comments WHERE id = ?");
             $stmt->execute([$commentId]);
-            echo json_encode(['success' => true]);
+            echo json_encode(['success' => true, 'message' => 'Comment deleted successfully']);
         } else {
             http_response_code(403);
             echo json_encode(['error' => 'You can only delete your own comments']);
@@ -78,5 +107,8 @@ if ($method === 'POST') {
     } catch (Exception $e) {
         echo json_encode(['error' => $e->getMessage()]);
     }
+} else {
+    http_response_code(405);
+    echo json_encode(['error' => 'Method not allowed']);
 }
 ?>

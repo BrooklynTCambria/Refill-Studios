@@ -1,5 +1,3 @@
-// create-post.js - Fixed version with proper image upload
-
 let currentUser = null;
 let selectedImage = null;
 let formChanged = false;
@@ -19,9 +17,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    if (currentUser.role !== 'admin' && currentUser.role !== 'developer') {
-        alert('Only admins and developers can create posts.');
-        window.location.href = 'updates.html';
+    // Check if user can post (based on can_post flag)
+    if (!currentUser.can_post) {
+        alert('You need to select a creative role (Artist, Programmer, Modeler, etc.) to create posts.\n\nGo to Account Settings to select your role.');
+        window.location.href = 'account-settings.html';
         return;
     }
 
@@ -52,11 +51,11 @@ function initializeCreatePostPage(user) {
 
     // Update user info banner based on role
     const userInfoBanner = document.getElementById('user-info-banner');
-    if (user.role === 'admin') {
-        if (userInfoBanner) userInfoBanner.classList.add('admin');
-        if (userRoleBadge) userRoleBadge.classList.add('admin');
+    if (user.role !== 'Default') {
+        if (userInfoBanner) userInfoBanner.classList.add('active-role');
+        if (userRoleBadge) userRoleBadge.classList.add('creative-role');
     }
-
+    
     // Character counters
     if (headerInput && headerCounter) {
         headerInput.addEventListener('input', () => {

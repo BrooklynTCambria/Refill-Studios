@@ -2,10 +2,12 @@
 
 window.currentUser = {
     username: 'Guest',
-    role: 'user',
+    role: 'Default',
+    can_post: false,
     isLoggedIn: false,
     profilePic: 'images/account.png'
 };
+
 
 // user-system.js
 window.userSystemReady = new Promise(async (resolve) => {
