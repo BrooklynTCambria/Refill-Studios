@@ -10,7 +10,7 @@ CREATE TABLE users (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(20) DEFAULT 'user',
-    profile_pic TEXT,
+    profile_pic LONGTEXT,  -- Changed from TEXT to LONGTEXT
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -24,7 +24,7 @@ CREATE TABLE user_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Create posts table (with user_id foreign key)
+-- Create posts table
 CREATE TABLE posts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     header VARCHAR(100) NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE posts (
     author VARCHAR(50) NOT NULL,
     author_role VARCHAR(20) NOT NULL,
     user_id INT NOT NULL,
-    image_data LONGTEXT,
+    image_data LONGTEXT,  -- Changed from LONGTEXT to LONGTEXT (keeping as is, it's already big)
     image_name VARCHAR(255),
     image_type VARCHAR(50),
     image_size INT,
@@ -41,7 +41,7 @@ CREATE TABLE posts (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Create comments table (with user_id foreign key)
+-- Create comments table
 CREATE TABLE comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     post_id INT NOT NULL,
@@ -56,14 +56,13 @@ CREATE TABLE comments (
 );
 
 -- Insert a test user (password: "password")
--- To generate the hash, you can use: password_hash('password', PASSWORD_DEFAULT);
 INSERT INTO users (username, email, password_hash, role, profile_pic) 
 VALUES (
     'testuser',
     'test@example.com',
-    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- This is "password" hashed
+    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
     'user',
-    'images/account.png'
+    NULL
 );
 
 -- Insert an admin user
@@ -71,7 +70,7 @@ INSERT INTO users (username, email, password_hash, role, profile_pic)
 VALUES (
     'admin',
     'admin@refillstudios.com',
-    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- This is "password" hashed
+    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
     'admin',
-    'images/account.png'
+    NULL
 );
