@@ -7,13 +7,13 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'POST') {
     // Add comment
-    $token = $_COOKIE['session_token'] ?? null;
+    $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
     $user = validateSession($token);
     
     if (!$user) {
         http_response_code(401);
         echo json_encode(['error' => 'Please login to comment']);
-        break;
+        return;
     }
     
     $data = json_decode(file_get_contents('php://input'), true);

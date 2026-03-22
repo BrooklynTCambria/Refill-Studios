@@ -43,7 +43,7 @@ switch ($method) {
         
     case 'POST':
         // Create new post
-        $token = $_COOKIE['session_token'] ?? null;
+        $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
         $user = validateSession($token);
         
         if (!$user || !in_array($user['role'], ['admin', 'developer'])) {
@@ -59,17 +59,18 @@ switch ($method) {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
-        $imageData = $data['image'] ?? null;
-        $stmt->execute([
+        $imageData = isset($data['image']) ? $data['image'] : null;
+
+        $stmt->execute(array(
             $data['header'],
             $data['description'],
             $user['username'],
             $user['role'],
-            $imageData['dataUrl'] ?? null,
-            $imageData['name'] ?? null,
-            $imageData['type'] ?? null,
-            $imageData['size'] ?? null
-        ]);
+            isset($imageData['dataUrl']) ? $imageData['dataUrl'] : null,
+            isset($imageData['name']) ? $imageData['name'] : null,
+            isset($imageData['type']) ? $imageData['type'] : null,
+            isset($imageData['size']) ? $imageData['size'] : null
+        ));
         
         echo json_encode([
             'success' => true,

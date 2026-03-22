@@ -1,16 +1,16 @@
--- Create database
-CREATE DATABASE IF NOT EXISTS refill_studios;
+-- Drop and recreate database with correct structure
+DROP DATABASE IF EXISTS refill_studios;
+CREATE DATABASE refill_studios;
 USE refill_studios;
 
--- Users table (combining both user systems)
-CREATE TABLE IF NOT EXISTS users (
+-- Users table with all required columns
+CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('user', 'developer', 'admin') DEFAULT 'user',
-    profile_pic TEXT,
-    member_since DATETIME DEFAULT CURRENT_TIMESTAMP,
+    profile_pic TEXT DEFAULT 'images/account.png',
     notification_posts BOOLEAN DEFAULT TRUE,
     notification_replies BOOLEAN DEFAULT TRUE,
     notification_games BOOLEAN DEFAULT FALSE,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Posts table
-CREATE TABLE IF NOT EXISTS posts (
+CREATE TABLE posts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     header VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 -- Comments table
-CREATE TABLE IF NOT EXISTS comments (
+CREATE TABLE comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     post_id INT NOT NULL,
     username VARCHAR(50) NOT NULL,
@@ -46,8 +46,8 @@ CREATE TABLE IF NOT EXISTS comments (
     FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
 );
 
--- Sessions table for login persistence
-CREATE TABLE IF NOT EXISTS user_sessions (
+-- Sessions table
+CREATE TABLE user_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     session_token VARCHAR(255) UNIQUE NOT NULL,
@@ -56,8 +56,12 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Create default admin/developer accounts
-INSERT INTO users (username, email, password_hash, role) VALUES
-('Admin', 'admin@refillstudios.com', '$2y$10$YourHashHere', 'admin'),
-('Developer', 'dev@refillstudios.com', '$2y$10$YourHashHere', 'developer')
-ON DUPLICATE KEY UPDATE id=id;
+-- Create a test user (password: "password123")
+INSERT INTO users (username, email, password_hash, role, profile_pic) 
+VALUES (
+    'testuser',
+    'test@example.com',
+    '$2y$10$YourHashHere', -- You'll need to generate this
+    'user',
+    'images/account.png'
+);

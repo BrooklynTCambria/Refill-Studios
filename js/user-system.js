@@ -88,7 +88,7 @@ async function registerUser(username, email, password) {
 // Logout function
 async function logoutUser() {
     try {
-        await fetch('api/users.php', {
+        await fetch('Refill-Studios/api/users.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'logout' })
@@ -117,7 +117,7 @@ async function logoutUser() {
 // Update user settings
 async function updateUserSettings(settings) {
     try {
-        const response = await fetch('api/users.php', {
+        const response = await fetch('Refill-Studios/api/users.php', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(settings)

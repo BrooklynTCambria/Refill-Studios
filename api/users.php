@@ -1,7 +1,8 @@
 <?php
 header('Content-Type: application/json');
-require_once '../db_config.php';
-
+require_once __DIR__ . '/../config/db_config.php';
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 $pdo = getDBConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -9,7 +10,7 @@ switch ($method) {
     case 'GET':
         // Get current user from session
         session_start();
-        $token = $_COOKIE['session_token'] ?? null;
+        $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
         $user = validateSession($token);
         
         if ($user) {
@@ -25,8 +26,10 @@ switch ($method) {
         break;
         
     case 'POST':
-        $data = json_decode(file_get_contents('php://input'), true);
-        $action = $data['action'] ?? '';
+        $raw = file_get_contents('php://input');
+        echo $raw;
+        exit;
+        $action = isset($data['action']) ? $data['action'] : '';
         
         if ($action === 'login') {
             // Login
@@ -67,7 +70,7 @@ switch ($method) {
         }
         elseif ($action === 'logout') {
             // Logout
-            $token = $_COOKIE['session_token'] ?? null;
+            $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
             if ($token) {
                 deleteSession($token);
                 setcookie('session_token', '', time() - 3600, '/');
@@ -79,7 +82,7 @@ switch ($method) {
     case 'PUT':
         // Update user settings
         $data = json_decode(file_get_contents('php://input'), true);
-        $token = $_COOKIE['session_token'] ?? null;
+        $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
         $user = validateSession($token);
         
         if (!$user) {
