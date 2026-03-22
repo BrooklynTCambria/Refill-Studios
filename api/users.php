@@ -1,61 +1,75 @@
 <?php
-// api/users.php - Clean version with timezone fix
+// api/users.php - Fixed version with compatibility for older PHP
+
+ini_set('display_errors', 1);
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // Turn off display errors to prevent HTML output
 ini_set('log_errors', 1);
 
-// Set timezone to fix warnings
-date_default_timezone_set('Europe/London'); // Change to your timezone if needed
+// Set timezone
+date_default_timezone_set('Europe/London');
 
 // Clean any output buffers
 while (ob_get_level()) {
     ob_end_clean();
 }
-ob_start();
 
 // Set JSON header
 header('Content-Type: application/json');
 
-// Function to generate random token (compatible with older PHP)
+// Compatible random token generator (works with older PHP versions)
 function generateRandomToken($length = 32) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $charactersLength = strlen($characters);
+    $token = '';
+    
+    // Try to use random_bytes if available (PHP 7+)
     if (function_exists('random_bytes')) {
-        // PHP 7+
-        return bin2hex(random_bytes($length));
-    } elseif (function_exists('openssl_random_pseudo_bytes')) {
-        // OpenSSL fallback
-        return bin2hex(openssl_random_pseudo_bytes($length));
-    } else {
-        // Fallback for very old PHP
-        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $token = '';
-        for ($i = 0; $i < $length; $i++) {
-            $token .= $characters[mt_rand(0, strlen($characters) - 1)];
+        try {
+            $bytes = random_bytes($length);
+            return bin2hex($bytes);
+        } catch (Exception $e) {
+            // Fall back to openssl or manual method
         }
-        return $token;
+    }
+    
+    // Try OpenSSL if available
+    if (function_exists('openssl_random_pseudo_bytes')) {
+        $bytes = openssl_random_pseudo_bytes($length);
+        if ($bytes !== false) {
+            return bin2hex($bytes);
+        }
+    }
+    
+    // Fallback to manual random string generation
+    for ($i = 0; $i < $length * 2; $i++) {
+        $token .= $characters[mt_rand(0, $charactersLength - 1)];
+    }
+    
+    return $token;
+}
+
+// Include database config
+require_once __DIR__ . '/../config/db_config.php';
+
+if (!function_exists('validateSession')) {
+    function validateSession($token) {
+        if (!$token) return null;
+
+        $pdo = getDBConnection();
+        if (!$pdo) return null;
+
+        $stmt = $pdo->prepare("
+            SELECT u.* FROM users u 
+            JOIN user_sessions s ON u.id = s.user_id 
+            WHERE s.session_token = ? AND s.expires_at > NOW()
+        ");
+        $stmt->execute(array($token));
+        return $stmt->fetch();
     }
 }
 
-// Function to validate session (needs to be defined before use)
-function validateSession($token) {
-    if (!$token) return null;
-    
-    $pdo = getDBConnection();
-    if (!$pdo) return null;
-    
-    $stmt = $pdo->prepare("
-        SELECT u.* FROM users u 
-        JOIN user_sessions s ON u.id = s.user_id 
-        WHERE s.session_token = ? AND s.expires_at > NOW()
-    ");
-    $stmt->execute(array($token));
-    return $stmt->fetch();
-}
-
 try {
-    // Include database config
-    require_once __DIR__ . '/../config/db_config.php';
-    
-    // Test if database connection works
+    // Test database connection
     $pdo = getDBConnection();
     
     if (!$pdo) {
@@ -267,17 +281,76 @@ try {
                 'profile_pic' => 'images/account.png'
             )
         ));
-        exit();
     }
-    
-    // Handle PUT - Update user settings (moved to correct location)
-    elseif ($method === 'PUT') {
+
+
+    elseif ($method === 'DELETE') {
         $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
-        $user = validateSession($token);
+        
+        if (!$token) {
+            http_response_code(401);
+            echo json_encode(array('success' => false, 'message' => 'Not logged in'));
+            exit();
+        }
+        
+        $stmt = $pdo->prepare("
+            SELECT u.* FROM users u 
+            JOIN user_sessions s ON u.id = s.user_id 
+            WHERE s.session_token = ? AND s.expires_at > NOW()
+        ");
+        $stmt->execute(array($token));
+        $user = $stmt->fetch();
         
         if (!$user) {
             http_response_code(401);
+            echo json_encode(array('success' => false, 'message' => 'Session expired'));
+            exit();
+        }
+        
+        $data = json_decode(file_get_contents('php://input'), true);
+        $confirmPassword = isset($data['confirmPassword']) ? $data['confirmPassword'] : '';
+        
+        // Verify password
+        if (!password_verify($confirmPassword, $user['password_hash'])) {
+            echo json_encode(array('success' => false, 'message' => 'Incorrect password'));
+            exit();
+        }
+        
+        // Delete user (cascade will delete posts, comments, sessions automatically)
+        $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+        
+        if ($stmt->execute(array($user['id']))) {
+            // Clear session cookie
+            setcookie('session_token', '', time() - 3600, '/');
+            
+            echo json_encode(array('success' => true, 'message' => 'Account deleted successfully'));
+        } else {
+            echo json_encode(array('success' => false, 'message' => 'Failed to delete account'));
+        }
+        exit();
+    }
+    
+    // Handle PUT - Update user settings
+    elseif ($method === 'PUT') {
+        $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
+        
+        if (!$token) {
+            http_response_code(401);
             echo json_encode(array('success' => false, 'message' => 'Not logged in'));
+            exit();
+        }
+        
+        $stmt = $pdo->prepare("
+            SELECT u.* FROM users u 
+            JOIN user_sessions s ON u.id = s.user_id 
+            WHERE s.session_token = ? AND s.expires_at > NOW()
+        ");
+        $stmt->execute(array($token));
+        $user = $stmt->fetch();
+        
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode(array('success' => false, 'message' => 'Session expired'));
             exit();
         }
         
@@ -345,10 +418,8 @@ try {
     }
     
 } catch (Exception $e) {
-    // Log the error and return a clean response
     error_log("API Error in users.php: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
     
-    // For debugging - show the actual error
     echo json_encode(array(
         'success' => false, 
         'message' => $e->getMessage(),
@@ -356,10 +427,5 @@ try {
         'line' => $e->getLine()
     ));
     exit();
-}
-
-// Clean output buffer
-if (ob_get_level()) {
-    ob_end_flush();
 }
 ?>

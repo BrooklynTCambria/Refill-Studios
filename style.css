@@ -1697,3 +1697,113 @@ input:checked + .toggle-slider-small:before {
     from { opacity: 1; }
     to { opacity: 0; }
 }
+
+/* Delete post button styling */
+.delete-post-btn {
+    background: none;
+    border: none;
+    color: #ff6666;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px 10px;
+    transition: all 0.2s ease;
+    border-radius: 5px;
+}
+
+.delete-post-btn:hover {
+    background-color: rgba(255, 102, 102, 0.2);
+    transform: scale(1.1);
+}
+
+/* Delete comment button styling */
+.delete-comment-btn {
+    background: none;
+    border: none;
+    color: #ff6666;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+    transition: all 0.2s ease;
+    border-radius: 3px;
+    padding: 2px 5px;
+}
+
+.delete-comment-btn:hover {
+    background-color: rgba(255, 102, 102, 0.2);
+    transform: scale(1.1);
+}
+
+/* Danger zone section */
+.danger-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #ff4444;
+}
+
+.danger-title {
+    color: #ff4444;
+    font-size: 18px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.danger-description {
+    color: #aaa;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.danger-description ul {
+    margin-top: 10px;
+    margin-left: 20px;
+}
+
+.danger-description li {
+    margin: 5px 0;
+}
+
+.delete-account-btn {
+    background-color: #ff4444;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.delete-account-btn:hover {
+    background-color: #cc0000;
+    transform: translateY(-2px);
+}
+
+.warning-text {
+    color: #ffaa00;
+    font-size: 12px;
+    margin-top: 10px;
+}
+
+/* Simple delete account button */
+#delete-account-btn {
+    background: none;
+    border: none;
+    color: #aa5555;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: color 0.2s ease;
+}
+
+#delete-account-btn:hover {
+    color: #cc7777;
+}
+
+#delete-account-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

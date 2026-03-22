@@ -1,222 +1,271 @@
-// account-settings.js - Updated version
+// account-settings.js - With simple delete button
 
-document.addEventListener('DOMContentLoaded', function() {
+let currentUser = null;
+
+document.addEventListener('DOMContentLoaded', async function() {
     // Wait for user system to be ready
     if (window.userSystemReady) {
-        window.userSystemReady.then((user) => {
-            initializeAccountSettings(user);
-        });
+        currentUser = await window.userSystemReady;
     } else {
-        // Fallback: wait a bit and check
-        setTimeout(() => {
-            if (window.currentUser) {
-                initializeAccountSettings(window.currentUser);
-            } else {
-                alert('Please login first');
-                window.location.href = 'account.html';
-            }
-        }, 200);
+        currentUser = window.currentUser;
     }
-});
 
-function initializeAccountSettings(user) {
-    console.log('Initializing account settings with user:', user);
-    
-    // Check if user is logged in
-    if (!user || !user.isLoggedIn) {
+    if (!currentUser || !currentUser.isLoggedIn) {
         alert('Please login first');
         window.location.href = 'account.html';
         return;
     }
-    
-    // DOM Elements
+
+    initializeAccountSettings(currentUser);
+});
+
+function initializeAccountSettings(user) {
+    console.log('Initializing account settings with user:', user);
+
     const profilePreview = document.getElementById('profile-preview-large');
-    const profileHeader = document.getElementById('profile-pic-header');
-    const uploadBtn = document.getElementById('upload-profile-btn');
-    const profileUpload = document.getElementById('profile-upload');
     const usernameInput = document.getElementById('username-input');
     const usernameCounter = document.getElementById('username-counter');
     const saveBtn = document.getElementById('save-btn');
     const cancelBtn = document.getElementById('cancel-btn');
+    const uploadBtn = document.getElementById('upload-profile-btn');
+    const fileInput = document.getElementById('profile-upload');
     const saveSuccess = document.getElementById('save-success');
-    
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+
+    let newProfilePicData = null;
+
     // Load user data into form
-    function loadUserData() {
-        if (profilePreview) {
-            profilePreview.src = user.profilePic || 'images/account.png';
-        }
-        if (profileHeader) {
-            profileHeader.src = user.profilePic || 'images/account.png';
-        }
-        if (usernameInput) {
-            usernameInput.value = user.username;
-        }
-        updateCounter();
+    if (profilePreview) {
+        profilePreview.src = user.profilePic || 'images/account.png';
     }
     
-    // Update character counter
-    function updateCounter() {
-        if (usernameCounter && usernameInput) {
-            usernameCounter.textContent = `${usernameInput.value.length}/20`;
-            usernameCounter.className = 'char-counter';
+    if (usernameInput) {
+        usernameInput.value = user.username || '';
+        usernameCounter.textContent = `${user.username?.length || 0}/20`;
+    }
+
+    // Username input counter
+    if (usernameInput) {
+        usernameInput.addEventListener('input', () => {
+            const length = usernameInput.value.length;
+            usernameCounter.textContent = `${length}/20`;
             
-            if (usernameInput.value.length > 18) {
+            if (length > 18) {
                 usernameCounter.classList.add('warning');
+            } else {
+                usernameCounter.classList.remove('warning');
             }
-        }
-    }
-    
-    // Handle profile picture upload
-    if (uploadBtn && profileUpload) {
-        uploadBtn.addEventListener('click', () => {
-            profileUpload.click();
         });
     }
-    
-    if (profileUpload) {
-        profileUpload.addEventListener('change', function(event) {
-            const file = event.target.files[0];
+
+    // Upload button click
+    if (uploadBtn && fileInput) {
+        uploadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+    }
+
+    // File input change handler
+    if (fileInput) {
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
             if (!file) return;
             
-            // Check if it's an image
-            if (!file.type.match('image.*')) {
-                alert('Please select an image file.');
-                return;
-            }
-            
-            // Check file size (max 2MB)
             if (file.size > 2 * 1024 * 1024) {
-                alert('Image must be less than 2MB.');
+                alert('Profile picture must be less than 2MB');
                 return;
             }
             
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const dataUrl = e.target.result;
-                
-                // Update preview images
-                if (profilePreview) profilePreview.src = dataUrl;
-                if (profileHeader) profileHeader.src = dataUrl;
-                
-                // Save to localStorage temporarily (will be synced on save)
-                localStorage.setItem('profilePic', dataUrl);
-                if (window.currentUser) window.currentUser.profilePic = dataUrl;
-            };
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file (JPEG, PNG, etc.)');
+                return;
+            }
             
-            reader.readAsDataURL(file);
+            uploadBtn.textContent = 'Uploading...';
+            uploadBtn.disabled = true;
+            
+            try {
+                const reader = new FileReader();
+                
+                const base64Data = await new Promise((resolve, reject) => {
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                
+                newProfilePicData = base64Data;
+                
+                if (profilePreview) {
+                    profilePreview.src = base64Data;
+                }
+                
+                alert('Image loaded. Click Save Changes to apply.');
+                
+            } catch (error) {
+                console.error('Error reading file:', error);
+                alert('Error reading image file');
+            } finally {
+                uploadBtn.textContent = 'Change Picture';
+                uploadBtn.disabled = false;
+            }
+        });
+    }
+
+    // Save changes
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+            const newUsername = usernameInput?.value.trim();
+            
+            if (!newUsername) {
+                alert('Username cannot be empty');
+                return;
+            }
+            
+            if (newUsername.length < 3) {
+                alert('Username must be at least 3 characters');
+                return;
+            }
+            
+            if (newUsername.length > 20) {
+                alert('Username cannot exceed 20 characters');
+                return;
+            }
+            
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+            
+            try {
+                const updateData = {
+                    username: newUsername
+                };
+                
+                if (newProfilePicData) {
+                    updateData.profile_pic = newProfilePicData;
+                }
+                
+                const response = await fetch('api/users.php', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentUser.username = newUsername;
+                    if (newProfilePicData) {
+                        currentUser.profilePic = newProfilePicData;
+                    }
+                    
+                    localStorage.setItem('refillUser', JSON.stringify({
+                        username: currentUser.username,
+                        role: currentUser.role,
+                        isLoggedIn: true,
+                        profilePic: currentUser.profilePic
+                    }));
+                    
+                    if (window.currentUser) {
+                        window.currentUser.username = newUsername;
+                        if (newProfilePicData) {
+                            window.currentUser.profilePic = newProfilePicData;
+                        }
+                    }
+                    
+                    if (saveSuccess) {
+                        saveSuccess.classList.add('active');
+                        setTimeout(() => {
+                            saveSuccess.classList.remove('active');
+                        }, 3000);
+                    }
+                    
+                    newProfilePicData = null;
+                    
+                    if (window.createUniversalHeader) {
+                        setTimeout(() => {
+                            window.createUniversalHeader();
+                        }, 100);
+                    }
+                    
+                } else {
+                    alert(result.message || 'Failed to save settings');
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('Error saving settings: ' + error.message);
+            } finally {
+                saveBtn.textContent = 'Save Changes';
+                saveBtn.disabled = false;
+            }
         });
     }
     
-    // Handle character counter
-    if (usernameInput) {
-        usernameInput.addEventListener('input', updateCounter);
-    }
-    
-    // Save changes
-    async function saveChanges() {
-        // Validate input
-        if (!usernameInput || !usernameInput.value.trim()) {
-            alert('Username cannot be empty!');
-            return;
-        }
-        
-        if (usernameInput.value.length < 3) {
-            alert('Username must be at least 3 characters long.');
-            return;
-        }
-        
-        if (usernameInput.value.length > 20) {
-            alert('Username cannot exceed 20 characters.');
-            return;
-        }
-        
-        // Prepare settings to update
-        const settings = {};
-        
-        if (usernameInput.value.trim() !== user.username) {
-            settings.username = usernameInput.value.trim();
-        }
-        
-        if (localStorage.getItem('profilePic')) {
-            settings.profile_pic = localStorage.getItem('profilePic');
-        }
-        
-        // Update via API if there are changes
-        if (Object.keys(settings).length > 0 && window.updateUserSettings) {
-            const result = await window.updateUserSettings(settings);
+    // SIMPLE DELETE ACCOUNT BUTTON - Just a confirmation dialog
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', async () => {
+            // Simple are you sure dialog
+            const confirmed = confirm('Are you sure you want to delete your account? This action cannot be undone.');
             
-            if (result.success) {
-                showSaveSuccess();
-                
-                // Update local user object
-                if (settings.username) {
-                    user.username = settings.username;
-                    if (window.currentUser) window.currentUser.username = settings.username;
-                }
-                if (settings.profile_pic) {
-                    user.profilePic = settings.profile_pic;
-                    if (window.currentUser) window.currentUser.profilePic = settings.profile_pic;
-                }
-                
-                // Update header if it exists
-                const headerUsername = document.getElementById('account-link-text');
-                if (headerUsername) headerUsername.textContent = user.username;
-                
-                const headerPic = document.getElementById('profile-pic-header');
-                if (headerPic) headerPic.src = user.profilePic;
+            if (!confirmed) {
+                return;
             }
-        } else {
-            showSaveSuccess();
-        }
-    }
-    
-    if (saveBtn) {
-        saveBtn.addEventListener('click', saveChanges);
-    }
-    
-    // Show save success message
-    function showSaveSuccess() {
-        if (saveSuccess) {
-            saveSuccess.classList.add('active');
-            setTimeout(() => {
-                saveSuccess.classList.remove('active');
-            }, 3000);
-        }
+            
+            // Ask for password
+            const password = prompt('Please enter your password to confirm:');
+            
+            if (!password) {
+                alert('Password required to delete account.');
+                return;
+            }
+            
+            // Show deleting state
+            const originalText = deleteAccountBtn.textContent;
+            deleteAccountBtn.textContent = 'deleting...';
+            deleteAccountBtn.disabled = true;
+            
+            try {
+                const response = await fetch('api/users.php', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confirmPassword: password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Your account has been deleted. Goodbye!');
+                    
+                    // Clear all local data
+                    localStorage.clear();
+                    document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    
+                    // Reset current user
+                    window.currentUser = {
+                        username: 'Guest',
+                        role: 'user',
+                        isLoggedIn: false,
+                        profilePic: 'images/account.png'
+                    };
+                    
+                    // Redirect to home page
+                    window.location.href = 'index.html';
+                } else {
+                    alert(result.message || 'Failed to delete account. Incorrect password?');
+                    deleteAccountBtn.textContent = originalText;
+                    deleteAccountBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                alert('Error deleting account: ' + error.message);
+                deleteAccountBtn.textContent = originalText;
+                deleteAccountBtn.disabled = false;
+            }
+        });
     }
     
     // Cancel button
     if (cancelBtn) {
-        cancelBtn.addEventListener('click', function() {
-            if (confirm('Discard all changes?')) {
-                loadUserData(); // Reload original data
-                localStorage.removeItem('profilePic'); // Clear temporary profile pic
-            }
-        });
-    }
-    
-    // Navigation
-    const indexBtn = document.getElementById('index-button');
-    const gamesBtn = document.getElementById('games-button');
-    const updatesBtn = document.getElementById('updates-button');
-    
-    if (indexBtn) {
-        indexBtn.addEventListener('click', () => {
-            window.location.href = 'index.html';
-        });
-    }
-    
-    if (gamesBtn) {
-        gamesBtn.addEventListener('click', () => {
-            window.location.href = 'games.html';
-        });
-    }
-    
-    if (updatesBtn) {
-        updatesBtn.addEventListener('click', () => {
+        cancelBtn.addEventListener('click', () => {
             window.location.href = 'updates.html';
         });
     }
-    
-    // Initialize
-    loadUserData();
 }

@@ -7,9 +7,27 @@ window.currentUser = {
     profilePic: 'images/account.png'
 };
 
-// Create a promise that resolves when user system is initialized
-window.userSystemReady = new Promise((resolve) => {
-    window._resolveUserSystem = resolve;
+// user-system.js
+window.userSystemReady = new Promise(async (resolve) => {
+    try {
+        const response = await fetch('api/users.php'); // GET request
+        const data = await response.json();
+
+        if (data.success && data.user.isLoggedIn) {
+            window.currentUser = {
+                ...data.user,
+                profilePic: data.user.profile_pic || 'images/account.png'
+            };
+        } else {
+            window.currentUser = { isLoggedIn: false };
+        }
+
+        resolve(window.currentUser);
+    } catch (e) {
+        console.error('Failed to get current user:', e);
+        window.currentUser = { isLoggedIn: false };
+        resolve(window.currentUser);
+    }
 });
 
 // Initialize user system
@@ -98,10 +116,9 @@ function getCookie(name) {
     return null;
 }
 
-// Login function
 async function loginUser(username, password) {
     console.log('loginUser called with:', { username, password: '***' });
-    
+
     try {
         const response = await fetch('api/users.php', {
             method: 'POST',
@@ -114,9 +131,19 @@ async function loginUser(username, password) {
                 password: password
             })
         });
-        
-        const data = await response.json();
-        
+
+        // Get raw text first
+        const text = await response.text();
+        console.log('RAW response from API:', text);
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (parseError) {
+            console.error('Failed to parse JSON:', parseError);
+            return { success: false, message: 'Invalid JSON response from server. Check console for raw output.' };
+        }
+
         if (data.success) {
             window.currentUser = {
                 ...data.user,
@@ -130,7 +157,7 @@ async function loginUser(username, password) {
             return { success: false, message: data.message || 'Login failed' };
         }
     } catch (error) {
-        console.error('Login failed:', error);
+        console.error('Login failed (fetch error):', error);
         return { success: false, message: 'Login failed: ' + error.message };
     }
 }
@@ -212,6 +239,55 @@ async function logoutUser() {
             profilePic: 'images/account.png'
         };
         window.location.href = 'updates.html';
+    }
+}
+
+// Add this function to user-system.js (after the other functions)
+
+// Update user settings (profile picture and username)
+async function updateUserSettings(settings) {
+    console.log('updateUserSettings called with:', settings);
+    
+    try {
+        const response = await fetch('api/users.php', {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update local user data
+            if (settings.username) {
+                window.currentUser.username = settings.username;
+            }
+            if (settings.profile_pic) {
+                window.currentUser.profilePic = settings.profile_pic;
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('refillUser', JSON.stringify({
+                username: window.currentUser.username,
+                role: window.currentUser.role,
+                isLoggedIn: window.currentUser.isLoggedIn,
+                profilePic: window.currentUser.profilePic
+            }));
+            
+            // Update UI
+            updateUserUI();
+            
+            console.log('Settings updated successfully');
+            return { success: true };
+        } else {
+            console.error('Failed to update settings:', data.message);
+            return { success: false, message: data.message };
+        }
+    } catch (error) {
+        console.error('Error updating settings:', error);
+        return { success: false, message: error.message };
     }
 }
 

@@ -43,19 +43,21 @@ function createSession($userId) {
     return $token;
 }
 
-function validateSession($token) {
-    if (!$token) return null;
-    
-    $pdo = getDBConnection();
-    if (!$pdo) return null;
-    
-    $stmt = $pdo->prepare("
-        SELECT u.* FROM users u 
-        JOIN user_sessions s ON u.id = s.user_id 
-        WHERE s.session_token = ? AND s.expires_at > NOW()
-    ");
-    $stmt->execute([$token]);
-    return $stmt->fetch();
+if (!function_exists('validateSession')) {
+    function validateSession($token) {
+        if (!$token) return null;
+
+        $pdo = getDBConnection();
+        if (!$pdo) return null;
+
+        $stmt = $pdo->prepare("
+            SELECT u.* FROM users u 
+            JOIN user_sessions s ON u.id = s.user_id 
+            WHERE s.session_token = ? AND s.expires_at > NOW()
+        ");
+        $stmt->execute(array($token));
+        return $stmt->fetch();
+    }
 }
 
 function deleteSession($token) {

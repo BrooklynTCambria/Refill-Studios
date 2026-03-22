@@ -1,364 +1,246 @@
-// create-post.js - Fixed version
+// create-post.js - Fixed version with proper image upload
 
 let currentUser = null;
 let selectedImage = null;
 let formChanged = false;
 let imageDataUrl = null;
 
-// DOM Elements cache
-let form, headerInput, descInput, headerCounter, descCounter;
-let imageUpload, imageInput, imagePreview, previewImage, removeImageBtn;
-let submitBtn, cancelBtn, successMessage;
-let userInfoBanner, postingUsername, userRoleBadge;
-
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Create post page loaded');
-    
-    // Wait for user system to be ready
+document.addEventListener('DOMContentLoaded', async function() {
+    // Wait for user system
     if (window.userSystemReady) {
-        window.userSystemReady.then((user) => {
-            checkUserAndInitialize(user);
-        });
+        currentUser = await window.userSystemReady;
     } else {
-        setTimeout(() => {
-            if (window.currentUser) {
-                checkUserAndInitialize(window.currentUser);
-            } else {
-                console.error('No user data available');
-                alert('Please login first');
-                window.location.href = 'account.html';
-            }
-        }, 500);
+        currentUser = window.currentUser;
     }
-});
 
-function checkUserAndInitialize(user) {
-    console.log('Checking user for create post:', user);
-    
-    // Check if user is logged in
-    if (!user || !user.isLoggedIn) {
+    if (!currentUser || !currentUser.isLoggedIn) {
         alert('Please login first');
         window.location.href = 'account.html';
         return;
     }
-    
-    // Check if user has permissions
-    if (user.role !== 'admin' && user.role !== 'developer') {
+
+    if (currentUser.role !== 'admin' && currentUser.role !== 'developer') {
         alert('Only admins and developers can create posts.');
         window.location.href = 'updates.html';
         return;
     }
-    
-    currentUser = user;
-    initializeCreatePostPage();
-}
 
-function initializeCreatePostPage() {
-    console.log('Initializing create post page with user:', currentUser);
-    
-    // Cache DOM elements
-    cacheDOMElements();
-    
-    // Load user data
-    loadUserData();
-    
-    // Initialize form
-    initializeForm();
-    
-    // Setup navigation and event listeners
-    setupNavigation();
-    setupEventListeners();
-}
+    initializeCreatePostPage(currentUser);
+});
 
-function cacheDOMElements() {
-    form = document.getElementById('create-post-form');
-    headerInput = document.getElementById('post-header');
-    descInput = document.getElementById('post-description');
-    headerCounter = document.getElementById('header-counter');
-    descCounter = document.getElementById('desc-counter');
-    imageUpload = document.getElementById('image-upload');
-    imageInput = document.getElementById('image-input');
-    imagePreview = document.getElementById('image-preview');
-    previewImage = document.getElementById('preview-image');
-    removeImageBtn = document.getElementById('remove-image');
-    submitBtn = document.getElementById('submit-btn');
-    cancelBtn = document.getElementById('cancel-btn');
-    successMessage = document.getElementById('success-message');
-    userInfoBanner = document.getElementById('user-info-banner');
-    postingUsername = document.getElementById('posting-username');
-    userRoleBadge = document.getElementById('user-role-badge');
-}
+function initializeCreatePostPage(user) {
+    console.log('Initializing create post page with user:', user);
 
-function loadUserData() {
-    if (currentUser) {
-        if (postingUsername) {
-            postingUsername.textContent = currentUser.username;
-        }
-        
-        if (userRoleBadge) {
-            userRoleBadge.textContent = currentUser.role.toUpperCase();
-            
-            if (currentUser.role === 'admin') {
-                if (userInfoBanner) userInfoBanner.classList.add('admin');
-                userRoleBadge.classList.add('admin');
-            } else if (currentUser.role === 'developer') {
-                if (userInfoBanner) userInfoBanner.style.backgroundColor = '#2d4a2d';
-                if (userInfoBanner) userInfoBanner.style.color = '#a3d9a3';
-            }
-        }
+    const form = document.getElementById('create-post-form');
+    const headerInput = document.getElementById('post-header');
+    const descInput = document.getElementById('post-description');
+    const submitBtn = document.getElementById('submit-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const imageUpload = document.getElementById('image-upload');
+    const imageInput = document.getElementById('image-input');
+    const imagePreview = document.getElementById('image-preview');
+    const previewImage = document.getElementById('preview-image');
+    const removeImageBtn = document.getElementById('remove-image');
+    const headerCounter = document.getElementById('header-counter');
+    const descCounter = document.getElementById('desc-counter');
+    const postingUsername = document.getElementById('posting-username');
+    const userRoleBadge = document.getElementById('user-role-badge');
+
+    // Display user info
+    if (postingUsername) postingUsername.textContent = user.username;
+    if (userRoleBadge) userRoleBadge.textContent = user.role.toUpperCase();
+
+    // Update user info banner based on role
+    const userInfoBanner = document.getElementById('user-info-banner');
+    if (user.role === 'admin') {
+        if (userInfoBanner) userInfoBanner.classList.add('admin');
+        if (userRoleBadge) userRoleBadge.classList.add('admin');
     }
-}
 
-function initializeForm() {
-    if (headerInput) {
-        headerInput.addEventListener('input', updateHeaderCounter);
-    }
-    if (descInput) {
-        descInput.addEventListener('input', updateDescCounter);
-    }
-    
-    if (headerInput && descInput) {
-        [headerInput, descInput].forEach(input => {
-            input.addEventListener('input', () => {
-                formChanged = true;
-            });
+    // Character counters
+    if (headerInput && headerCounter) {
+        headerInput.addEventListener('input', () => {
+            const length = headerInput.value.length;
+            headerCounter.textContent = `${length}/100`;
+            formChanged = true;
         });
     }
-}
 
-function updateHeaderCounter() {
-    const length = this.value.length;
-    if (headerCounter) {
-        headerCounter.textContent = `${length}/100`;
-        
-        if (length > 90) {
-            headerCounter.classList.add('warning');
-            headerCounter.classList.remove('error');
-        } else if (length >= 100) {
-            headerCounter.classList.add('error');
-            headerCounter.classList.remove('warning');
-        } else {
-            headerCounter.classList.remove('warning', 'error');
-        }
+    if (descInput && descCounter) {
+        descInput.addEventListener('input', () => {
+            const length = descInput.value.length;
+            descCounter.textContent = `${length}/1000`;
+            formChanged = true;
+        });
     }
-}
 
-function updateDescCounter() {
-    const length = this.value.length;
-    if (descCounter) {
-        descCounter.textContent = `${length}/1000`;
-        
-        if (length > 900) {
-            descCounter.classList.add('warning');
-            descCounter.classList.remove('error');
-        } else if (length >= 1000) {
-            descCounter.classList.add('error');
-            descCounter.classList.remove('warning');
-        } else {
-            descCounter.classList.remove('warning', 'error');
-        }
+    // Image upload handling
+    if (imageUpload && imageInput) {
+        // Click to upload
+        imageUpload.addEventListener('click', () => {
+            imageInput.click();
+        });
+
+        // Drag and drop
+        imageUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            imageUpload.style.borderColor = '#888';
+            imageUpload.style.backgroundColor = '#464646';
+        });
+
+        imageUpload.addEventListener('dragleave', () => {
+            imageUpload.style.borderColor = '#525252';
+            imageUpload.style.backgroundColor = '#414141';
+        });
+
+        imageUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            imageUpload.style.borderColor = '#525252';
+            imageUpload.style.backgroundColor = '#414141';
+            
+            if (e.dataTransfer.files.length) {
+                handleImageFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // File input change
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleImageFile(e.target.files[0]);
+            }
+        });
     }
-}
 
-function setupImageUploadListeners() {
-    if (!imageUpload || !imageInput) return;
-    
-    imageUpload.addEventListener('click', () => imageInput.click());
-    
-    imageUpload.addEventListener('dragover', handleDragOver);
-    imageUpload.addEventListener('dragleave', handleDragLeave);
-    imageUpload.addEventListener('drop', handleDrop);
-    
-    imageInput.addEventListener('change', handleFileInput);
-    
+    function handleImageFile(file) {
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file (JPEG, PNG, GIF, etc.)');
+            return;
+        }
+        
+        // Limit to 5MB for posts
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size should be less than 5MB');
+            return;
+        }
+        
+        selectedImage = file;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            imageDataUrl = e.target.result;
+            if (previewImage) previewImage.src = imageDataUrl;
+            if (imagePreview) imagePreview.style.display = 'block';
+            if (imageUpload) imageUpload.style.display = 'none';
+            formChanged = true;
+            console.log('Image loaded, Base64 length:', imageDataUrl.length);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Remove image
     if (removeImageBtn) {
-        removeImageBtn.addEventListener('click', removeImage);
-    }
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    if (imageUpload) {
-        imageUpload.style.borderColor = '#888';
-        imageUpload.style.backgroundColor = '#464646';
-    }
-}
-
-function handleDragLeave() {
-    if (imageUpload) {
-        imageUpload.style.borderColor = '#525252';
-        imageUpload.style.backgroundColor = '#414141';
-    }
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    if (imageUpload) {
-        imageUpload.style.borderColor = '#525252';
-        imageUpload.style.backgroundColor = '#414141';
-    }
-    
-    if (e.dataTransfer.files.length) {
-        handleImageFile(e.dataTransfer.files[0]);
-    }
-}
-
-function handleFileInput(e) {
-    if (this.files.length) {
-        handleImageFile(this.files[0]);
-    }
-}
-
-function handleImageFile(file) {
-    if (!file.type.startsWith('image/')) {
-        alert('Please select an image file (JPEG, PNG, GIF, etc.)');
-        return;
-    }
-    
-    if (file.size > 5 * 1024 * 1024) {
-        alert('Image size should be less than 5MB');
-        return;
-    }
-    
-    selectedImage = file;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        imageDataUrl = e.target.result;
-        if (previewImage) previewImage.src = imageDataUrl;
-        if (imagePreview) imagePreview.style.display = 'block';
-        if (imageUpload) imageUpload.style.display = 'none';
-        formChanged = true;
-    };
-    reader.readAsDataURL(file);
-}
-
-function removeImage() {
-    selectedImage = null;
-    imageDataUrl = null;
-    if (previewImage) previewImage.src = '';
-    if (imagePreview) imagePreview.style.display = 'none';
-    if (imageUpload) imageUpload.style.display = 'block';
-    if (imageInput) imageInput.value = '';
-    formChanged = true;
-}
-
-async function handleFormSubmit(e) {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Posting...';
-    }
-    
-    const post = {
-        header: headerInput ? headerInput.value.trim() : '',
-        description: descInput ? descInput.value.trim() : '',
-        image: imageDataUrl ? {
-            dataUrl: imageDataUrl,
-            name: selectedImage ? selectedImage.name : 'image',
-            type: selectedImage ? selectedImage.type : 'image/jpeg',
-            size: selectedImage ? selectedImage.size : 0
-        } : null
-    };
-    
-    try {
-        const response = await fetch('api/posts.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(post)
+        removeImageBtn.addEventListener('click', () => {
+            selectedImage = null;
+            imageDataUrl = null;
+            if (previewImage) previewImage.src = '';
+            if (imagePreview) imagePreview.style.display = 'none';
+            if (imageUpload) imageUpload.style.display = 'block';
+            if (imageInput) imageInput.value = '';
+            formChanged = true;
         });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            if (successMessage) successMessage.classList.add('active');
-            
-            sessionStorage.setItem('newPostAdded', 'true');
-            sessionStorage.setItem('latestPost', JSON.stringify({
-                header: post.header,
-                id: data.id
-            }));
-            
-            setTimeout(() => {
-                window.location.href = 'updates.html';
-            }, 3000);
-        } else {
-            alert('Failed to create post. Please try again.');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Post';
+    }
+
+    // Form submission
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const header = headerInput?.value.trim();
+            const description = descInput?.value.trim();
+
+            if (!header) {
+                alert('Please enter a post header');
+                headerInput?.focus();
+                return;
             }
-        }
-    } catch (error) {
-        console.error('Failed to create post:', error);
-        alert('Failed to create post. Please try again.');
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Post';
-        }
-    }
-}
 
-function validateForm() {
-    if (!headerInput || !headerInput.value.trim()) {
-        alert('Please enter a post header');
-        if (headerInput) headerInput.focus();
-        return false;
-    }
-    
-    if (!descInput || !descInput.value.trim()) {
-        alert('Please enter a post description');
-        if (descInput) descInput.focus();
-        return false;
-    }
-    
-    return true;
-}
+            if (!description) {
+                alert('Please enter a post description');
+                descInput?.focus();
+                return;
+            }
 
-function setupNavigation() {
-    const indexBtn = document.getElementById('index-button');
-    const gamesBtn = document.getElementById('games-button');
-    const updatesBtn = document.getElementById('updates-button');
-    
-    if (indexBtn) {
-        indexBtn.addEventListener('click', () => {
-            if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) return;
-            window.location.href = 'index.html';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Posting...';
+            }
+
+            const postData = {
+                header: header,
+                description: description,
+                image: imageDataUrl ? { dataUrl: imageDataUrl } : null
+            };
+
+            try {
+                console.log('Sending post data...');
+                const response = await fetch('api/posts.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(postData)
+                });
+
+                const result = await response.json();
+                console.log('Server response:', result);
+
+                if (result.success) {
+                    alert('Post created successfully!');
+                    window.location.href = 'updates.html';
+                } else {
+                    alert(result.error || 'Failed to create post');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Post';
+                    }
+                }
+            } catch (error) {
+                console.error('Error creating post:', error);
+                alert('Error creating post: ' + error.message);
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Post';
+                }
+            }
         });
     }
-    
-    if (gamesBtn) {
-        gamesBtn.addEventListener('click', () => {
-            if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) return;
-            window.location.href = 'games.html';
-        });
-    }
-    
-    if (updatesBtn) {
-        updatesBtn.addEventListener('click', () => {
-            if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) return;
-            window.location.href = 'updates.html';
-        });
-    }
-    
+
+    // Cancel button
     if (cancelBtn) {
         cancelBtn.addEventListener('click', () => {
-            if (formChanged && !confirm('You have unsaved changes. Are you sure you want to cancel?')) return;
+            if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                return;
+            }
             window.location.href = 'updates.html';
         });
     }
-}
 
-function setupEventListeners() {
-    if (form) {
-        form.addEventListener('submit', handleFormSubmit);
-    }
-    
-    setupImageUploadListeners();
-    
+    // Navigation with unsaved changes check
+    const navButtons = ['index-button', 'games-button', 'updates-button'];
+    navButtons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.addEventListener('click', (e) => {
+                if (formChanged && !confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                    e.preventDefault();
+                    return;
+                }
+                if (btnId === 'index-button') window.location.href = 'index.html';
+                if (btnId === 'games-button') window.location.href = 'games.html';
+                if (btnId === 'updates-button') window.location.href = 'updates.html';
+            });
+        }
+    });
+
+    // Warn before leaving
     window.addEventListener('beforeunload', (e) => {
         if (formChanged) {
             e.preventDefault();

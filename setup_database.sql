@@ -24,35 +24,39 @@ CREATE TABLE user_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Create posts table
+-- Create posts table (with user_id foreign key)
 CREATE TABLE posts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     header VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
     author VARCHAR(50) NOT NULL,
     author_role VARCHAR(20) NOT NULL,
+    user_id INT NOT NULL,
     image_data LONGTEXT,
     image_name VARCHAR(255),
     image_type VARCHAR(50),
     image_size INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (author) REFERENCES users(username) ON DELETE CASCADE
+    FOREIGN KEY (author) REFERENCES users(username) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Create comments table
+-- Create comments table (with user_id foreign key)
 CREATE TABLE comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     post_id INT NOT NULL,
     username VARCHAR(50) NOT NULL,
+    user_id INT NOT NULL,
     text TEXT NOT NULL,
     is_dev BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
-    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
+    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
--- Insert a test user (password: "password123")
--- To generate the hash, you can use: password_hash('password123', PASSWORD_DEFAULT);
--- For testing, let's create a user with a known password
+
+-- Insert a test user (password: "password")
+-- To generate the hash, you can use: password_hash('password', PASSWORD_DEFAULT);
 INSERT INTO users (username, email, password_hash, role, profile_pic) 
 VALUES (
     'testuser',

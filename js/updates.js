@@ -1,5 +1,4 @@
 // updated-updates.js - Backend-connected Updates Page
-
 let currentPostId = null;
 
 // ============================================
@@ -19,6 +18,70 @@ async function loadPostsFromStorage() {
 
 async function getAllPosts() {
     return await loadPostsFromStorage();
+}
+
+// Delete a post
+async function deletePost(postId, postHeader) {
+    if (!confirm(`Are you sure you want to delete the post "${postHeader}"? This will also delete all comments on this post.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('api/posts.php', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ postId: postId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Post deleted successfully!');
+            // Reload posts
+            await renderPosts();
+            // Clear comments section
+            const commentsList = document.getElementById('comments-list');
+            if (commentsList) {
+                commentsList.innerHTML = '<div class="empty-comments">Select a post to view comments</div>';
+            }
+            currentPostId = null;
+        } else {
+            alert(result.error || 'Failed to delete post');
+        }
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        alert('Error deleting post: ' + error.message);
+    }
+}
+
+// Delete a comment
+async function deleteComment(commentId) {
+    if (!confirm('Are you sure you want to delete this comment?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('api/comments.php', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ commentId: commentId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Comment deleted successfully!');
+            // Reload comments for current post
+            if (currentPostId) {
+                await loadComments(currentPostId);
+            }
+        } else {
+            alert(result.error || 'Failed to delete comment');
+        }
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert('Error deleting comment: ' + error.message);
+    }
 }
 
 async function renderPosts() {
@@ -52,9 +115,14 @@ async function renderPosts() {
         postElement.className = `post ${index === 0 ? 'active' : ''}`;
         postElement.setAttribute('data-post-id', post.id);
         
+        // Check if current user can delete this post (admin or post owner)
+        const canDelete = window.currentUser && 
+                         (window.currentUser.role === 'admin' || 
+                          (window.currentUser.isLoggedIn && window.currentUser.id === post.user_id));
+        
         // Image HTML
         let imageHtml = '';
-        if (post.image) {
+        if (post.image && post.image.dataUrl) {
             imageHtml = `
                 <div class="post-image-container" style="display: block;">
                     <img src="${post.image.dataUrl}" alt="Post Image" class="post-image" onclick="openImageModal('${post.image.dataUrl}')">
@@ -64,11 +132,18 @@ async function renderPosts() {
         }
         
         postElement.innerHTML = `
-            <h3 class="post-header">${post.header}</h3>
-            <p class="post-description">${post.description}</p>
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <h3 class="post-header" style="flex: 1;">${escapeHtml(post.header)}</h3>
+                ${canDelete ? `
+                    <button class="delete-post-btn" data-post-id="${post.id}" data-post-header="${escapeHtml(post.header)}" 
+                            style="background: none; border: none; color: #ff6666; cursor: pointer; font-size: 18px; padding: 5px 10px;" 
+                            title="Delete Post">🗑️</button>
+                ` : ''}
+            </div>
+            <p class="post-description">${escapeHtml(post.description)}</p>
             ${imageHtml}
             <div class="post-meta">
-                ${post.author} | ${post.author_role} | <span class="bold-date">${new Date(post.created_at).toLocaleDateString()}</span>
+                ${escapeHtml(post.author)} | ${escapeHtml(post.author_role)} | <span class="bold-date">${new Date(post.created_at).toLocaleDateString()}</span>
             </div>
         `;
         
@@ -80,15 +155,29 @@ async function renderPosts() {
         }
     });
     
-    // Add click events to posts
+    // Add click events to posts and delete buttons
     setTimeout(() => {
         const posts = document.querySelectorAll('.post');
         posts.forEach(post => {
-            post.addEventListener('click', function() {
+            post.addEventListener('click', function(e) {
+                // Don't trigger if clicking on delete button
+                if (e.target.classList.contains('delete-post-btn')) return;
+                
                 posts.forEach(p => p.classList.remove('active'));
                 this.classList.add('active');
                 currentPostId = parseInt(this.getAttribute('data-post-id'));
                 loadComments(currentPostId);
+            });
+        });
+        
+        // Add delete post button event listeners
+        const deleteButtons = document.querySelectorAll('.delete-post-btn');
+        deleteButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const postId = parseInt(btn.getAttribute('data-post-id'));
+                const postHeader = btn.getAttribute('data-post-header');
+                deletePost(postId, postHeader);
             });
         });
         
@@ -97,6 +186,14 @@ async function renderPosts() {
             loadComments(currentPostId);
         }
     }, 100);
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // ============================================
@@ -123,12 +220,25 @@ async function loadComments(postId) {
         comments.forEach(comment => {
             const commentElement = document.createElement('div');
             commentElement.className = 'comment';
+            commentElement.setAttribute('data-comment-id', comment.id);
+            
+            // Check if current user can delete this comment
+            const canDelete = window.currentUser && 
+                             (window.currentUser.role === 'admin' || 
+                              (window.currentUser.isLoggedIn && window.currentUser.id === comment.user_id));
             
             const commentHeader = document.createElement('div');
             commentHeader.className = 'comment-header';
             commentHeader.innerHTML = `
-                <span>${comment.username} | ${new Date(comment.created_at).toLocaleTimeString()}</span>
-                ${comment.is_dev ? '<span class="dev-badge">DEV</span>' : ''}
+                <span>${escapeHtml(comment.username)} | ${new Date(comment.created_at).toLocaleString()}</span>
+                <div>
+                    ${comment.is_dev ? '<span class="dev-badge">DEV</span>' : ''}
+                    ${canDelete ? `
+                        <button class="delete-comment-btn" data-comment-id="${comment.id}" 
+                                style="background: none; border: none; color: #ff6666; cursor: pointer; font-size: 14px; margin-left: 10px;" 
+                                title="Delete Comment">🗑️</button>
+                    ` : ''}
+                </div>
             `;
             
             const commentText = document.createElement('p');
@@ -138,6 +248,16 @@ async function loadComments(postId) {
             commentElement.appendChild(commentHeader);
             commentElement.appendChild(commentText);
             commentsList.appendChild(commentElement);
+        });
+        
+        // Add delete comment button event listeners
+        const deleteCommentBtns = document.querySelectorAll('.delete-comment-btn');
+        deleteCommentBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const commentId = parseInt(btn.getAttribute('data-comment-id'));
+                deleteComment(commentId);
+            });
         });
     }
     
@@ -172,6 +292,9 @@ async function addComment(text) {
             
             if (commentInput) commentInput.value = '';
             if (commentForm) commentForm.classList.remove('active');
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Failed to add comment');
         }
     } catch (error) {
         console.error('Failed to add comment:', error);
