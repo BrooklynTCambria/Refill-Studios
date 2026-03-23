@@ -1,9 +1,7 @@
--- Drop and recreate database
 DROP DATABASE IF EXISTS refill_studios;
 CREATE DATABASE refill_studios;
 USE refill_studios;
 
--- Create roles table FIRST (since users table references it)
 CREATE TABLE roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     role_name VARCHAR(50) UNIQUE NOT NULL,
@@ -12,7 +10,6 @@ CREATE TABLE roles (
     display_order INT DEFAULT 0
 );
 
--- Insert available roles
 INSERT INTO roles (role_name, can_post, is_admin, display_order) VALUES
 ('Default', FALSE, FALSE, 1),
 ('Artist', TRUE, FALSE, 2),
@@ -25,7 +22,6 @@ INSERT INTO roles (role_name, can_post, is_admin, display_order) VALUES
 ('UI/UX Designer', TRUE, FALSE, 9),
 ('Admin', TRUE, TRUE, 99);
 
--- Create users table (now roles exists)
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -38,9 +34,6 @@ CREATE TABLE users (
     role_changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Note: Foreign key removed for simplicity, role validation handled by PHP
-
--- Create sessions table
 CREATE TABLE sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -50,7 +43,6 @@ CREATE TABLE sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Create posts table
 CREATE TABLE posts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     header VARCHAR(100) NOT NULL,
@@ -68,7 +60,6 @@ CREATE TABLE posts (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Create comments table
 CREATE TABLE comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     post_id INT NOT NULL,
@@ -160,7 +151,6 @@ VALUES
     FALSE
 );
 
--- Display confirmation
 SELECT 'Database setup complete!' AS message;
 SELECT COUNT(*) AS total_users FROM users;
 SELECT COUNT(*) AS total_posts FROM posts;
