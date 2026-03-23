@@ -1,5 +1,3 @@
-// games.js - Simplified working carousel
-
 document.addEventListener('DOMContentLoaded', function() {
   // Game data
   const games = [
@@ -52,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const detailValuesMain = document.querySelectorAll('.detail-value-main');
   const dots = document.querySelectorAll('.dot');
   
-  // Arrow elements - FIXED: Target the button containers, not the images
+  // Arrow elements
   const leftArrow = document.querySelector('.arrow-left-container');
   const rightArrow = document.querySelector('.arrow-right-container');
   
@@ -122,8 +120,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Open the game's URL in a new tab
         window.open(currentGame.playUrl, '_blank');
         
-        // OR open in the same tab (uncomment the line below and comment the one above)
-        // window.location.href = currentGame.playUrl;
       } else {
         // Fallback if no URL is provided
         alert(`No play link available for ${currentGame.title}`);
@@ -201,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
       updateAllLogos();
       updateGameInfo();
       
-      // Reset positions (without animation)
+      // Reset positions
       resetLogoPositions();
       
       isAnimating = false;
@@ -213,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isAnimating) return;
     isAnimating = true;
     
-    // Animate: current moves right, prev moves to center
+    // current moves right, prev moves to center
     currentLogoContainer.style.left = '85%';
     currentLogoContainer.style.transform = 'translateX(-50%) scale(0.95)';
     currentLogoContainer.style.opacity = '0.7';
@@ -256,14 +252,14 @@ document.addEventListener('DOMContentLoaded', function() {
   function goToGame(index) {
     if (isAnimating || currentIndex === index) return;
     
-    // Simple implementation - just set directly
+    // Simple implementation
     currentIndex = index;
     updateAllLogos();
     updateGameInfo();
     resetLogoPositions();
   }
 
-  // Event Listeners - FIXED: Use the button containers
+  // Event Listeners
   if (leftArrow) {
     leftArrow.addEventListener('click', prevGame);
   }
@@ -305,8 +301,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.key === 'ArrowRight') nextGame();
   });
 
-  // Auto-rotate (optional)
-  let autoRotate = setInterval(nextGame, 5000);
+  // Auto-rotate
+  //let autoRotate = setInterval(nextGame, 5000);
   
   // Pause auto-rotate on hover
   const carouselArea = document.querySelector('.logo-carousel-container');

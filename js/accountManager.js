@@ -1,5 +1,5 @@
 async function handleRegister() {
-    console.log('handleRegister called'); // Debug log
+    console.log('handleRegister called');
     
     const emailInput = document.getElementById('email-input');
     const usernameInput = document.getElementById('username-input');

@@ -26,7 +26,7 @@ if ($method === 'POST') {
             return;
         }
         
-        // Check if user is a developer (for dev badge)
+        // Check if user is a developer
         $isDev = false;
         
         // Check using new selected_role

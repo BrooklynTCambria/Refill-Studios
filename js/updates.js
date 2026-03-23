@@ -1,9 +1,6 @@
-// updated-updates.js - Backend-connected Updates Page
 let currentPostId = null;
 
-// ============================================
 // POSTS MANAGEMENT
-// ============================================
 
 async function loadPostsFromStorage() {
     try {
@@ -115,7 +112,7 @@ async function renderPosts() {
         postElement.className = `post ${index === 0 ? 'active' : ''}`;
         postElement.setAttribute('data-post-id', post.id);
         
-        // Check if current user can delete this post (admin or post owner)
+        // Check if current user can delete this post
         const canDelete = window.currentUser && 
                          (window.currentUser.role === 'admin' || 
                           (window.currentUser.isLoggedIn && window.currentUser.id === post.user_id));
@@ -196,9 +193,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// ============================================
 // COMMENTS MANAGEMENT
-// ============================================
 
 async function loadComments(postId) {
     const commentsList = document.getElementById('comments-list');
@@ -302,9 +297,7 @@ async function addComment(text) {
     }
 }
 
-// ============================================
 // IMAGE MODAL FUNCTIONALITY
-// ============================================
 
 function openImageModal(imageSrc) {
     const modal = document.getElementById('image-modal');
@@ -325,9 +318,7 @@ function closeImageModal() {
     }
 }
 
-// ============================================
 // NOTIFICATION SYSTEM
-// ============================================
 
 function checkForNewPostNotification() {
     const newPostAdded = sessionStorage.getItem('newPostAdded');
@@ -406,9 +397,7 @@ function updateUIForUserRole() {
     }
 }
 
-// ============================================
 // EVENT LISTENERS SETUP
-// ============================================
 
 function setupEventListeners() {
     // Navigation
@@ -513,9 +502,7 @@ function setupEventListeners() {
     }
 }
 
-// ============================================
 // INITIALIZATION
-// ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Updates page loaded - Initializing...');

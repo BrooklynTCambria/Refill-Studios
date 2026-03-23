@@ -1,5 +1,3 @@
-// user-system.js - Backend-connected User System (FIXED)
-
 window.currentUser = {
     username: 'Guest',
     role: 'Default',
@@ -9,7 +7,6 @@ window.currentUser = {
 };
 
 
-// user-system.js
 window.userSystemReady = new Promise(async (resolve) => {
     try {
         const response = await fetch('api/users.php'); // GET request
@@ -207,7 +204,7 @@ async function logoutUser() {
             body: JSON.stringify({ action: 'logout' })
         });
         
-        // Clear the session token cookie (with correct path)
+        // Clear the session token cookie
         document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
         
         // Clear local storage
@@ -244,9 +241,7 @@ async function logoutUser() {
     }
 }
 
-// Add this function to user-system.js (after the other functions)
-
-// Update user settings (profile picture and username)
+// Update user settings
 async function updateUserSettings(settings) {
     console.log('updateUserSettings called with:', settings);
     

@@ -1,6 +1,4 @@
 <?php
-// api/users.php - Updated with role selection
-
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 ini_set('log_errors', 1);
@@ -255,7 +253,7 @@ try {
         }
     }
     
-    // Handle GET - check session
+    // check session
     elseif ($method === 'GET') {
         $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
         
@@ -308,7 +306,7 @@ try {
         ));
     }
 
-    // Handle PUT - Update user settings (including role)
+    // Update user settings
     elseif ($method === 'PUT') {
         $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
         

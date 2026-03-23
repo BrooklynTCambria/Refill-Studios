@@ -3,7 +3,7 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'refill_studios');
 define('DB_USER', 'root');
-define('DB_PASS', 'root'); // Change this if your MySQL password is different
+define('DB_PASS', 'root'); 
 
 // Create connection
 function getDBConnection() {

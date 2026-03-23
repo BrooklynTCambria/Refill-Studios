@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // Check if user can post (based on can_post flag)
+    // Check if user can post
     if (!currentUser.can_post) {
         alert('You need to select a creative role (Artist, Programmer, Modeler, etc.) to create posts.\n\nGo to Account Settings to select your role.');
         window.location.href = 'account-settings.html';
@@ -55,7 +55,7 @@ function initializeCreatePostPage(user) {
         if (userInfoBanner) userInfoBanner.classList.add('active-role');
         if (userRoleBadge) userRoleBadge.classList.add('creative-role');
     }
-    
+
     // Character counters
     if (headerInput && headerCounter) {
         headerInput.addEventListener('input', () => {

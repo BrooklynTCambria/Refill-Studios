@@ -1,4 +1,3 @@
-// js/loginManager.js
 async function handleLogin() {
     console.log('handleLogin called');
     
@@ -71,7 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = 'register.html';
         });
     }
-});// js/loginManager.js
+});
+
 async function handleLogin() {
     console.log('handleLogin called');
     
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Login button not found! Looking for #log-in-button');
     }
     
-    // Handle the "Sign Up" link
+    // Handle Sign Up link
     const signUpBtn = document.getElementById('sign-up-button');
     if (signUpBtn) {
         signUpBtn.addEventListener('click', function(e) {

@@ -3,16 +3,42 @@ DROP DATABASE IF EXISTS refill_studios;
 CREATE DATABASE refill_studios;
 USE refill_studios;
 
--- Create users table
+-- Create allowed_roles table FIRST (since users table references it)
+CREATE TABLE allowed_roles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    role_name VARCHAR(50) UNIQUE NOT NULL,
+    can_post BOOLEAN DEFAULT FALSE,
+    is_admin BOOLEAN DEFAULT FALSE,
+    display_order INT DEFAULT 0
+);
+
+-- Insert available roles
+INSERT INTO allowed_roles (role_name, can_post, is_admin, display_order) VALUES
+('Default', FALSE, FALSE, 1),
+('Artist', TRUE, FALSE, 2),
+('Programmer', TRUE, FALSE, 3),
+('Modeler', TRUE, FALSE, 4),
+('Sound Designer', TRUE, FALSE, 5),
+('Game Designer', TRUE, FALSE, 6),
+('Writer', TRUE, FALSE, 7),
+('Animator', TRUE, FALSE, 8),
+('UI/UX Designer', TRUE, FALSE, 9),
+('Admin', TRUE, TRUE, 99);
+
+-- Create users table (now allowed_roles exists)
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(20) DEFAULT 'user',
-    profile_pic LONGTEXT,  -- Changed from TEXT to LONGTEXT
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    selected_role VARCHAR(50) DEFAULT 'Default',
+    can_post BOOLEAN DEFAULT FALSE,
+    profile_pic LONGTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    role_changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Note: Foreign key removed for simplicity, role validation handled by PHP
 
 -- Create sessions table
 CREATE TABLE user_sessions (
@@ -30,9 +56,10 @@ CREATE TABLE posts (
     header VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
     author VARCHAR(50) NOT NULL,
-    author_role VARCHAR(20) NOT NULL,
+    author_role VARCHAR(50) NOT NULL,
+    author_role_display VARCHAR(50),
     user_id INT NOT NULL,
-    image_data LONGTEXT,  -- Changed from LONGTEXT to LONGTEXT (keeping as is, it's already big)
+    image_data LONGTEXT,
     image_name VARCHAR(255),
     image_type VARCHAR(50),
     image_size INT,
@@ -55,22 +82,86 @@ CREATE TABLE comments (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Insert a test user (password: "password")
-INSERT INTO users (username, email, password_hash, role, profile_pic) 
+-- Insert test user (password: "password")
+INSERT INTO users (username, email, password_hash, selected_role, can_post, profile_pic) 
 VALUES (
     'testuser',
     'test@example.com',
     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
-    'user',
-    NULL
+    'Default',
+    FALSE,
+    'images/account.png'
 );
 
--- Insert an admin user
-INSERT INTO users (username, email, password_hash, role, profile_pic) 
+-- Insert admin user (password: "password")
+INSERT INTO users (username, email, password_hash, selected_role, can_post, profile_pic) 
 VALUES (
     'admin',
     'admin@refillstudios.com',
     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
-    'admin',
-    NULL
+    'Admin',
+    TRUE,
+    'images/account.png'
 );
+
+-- Insert sample creative user (password: "password")
+INSERT INTO users (username, email, password_hash, selected_role, can_post, profile_pic) 
+VALUES (
+    'artist1',
+    'artist@example.com',
+    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    'Artist',
+    TRUE,
+    'images/account.png'
+);
+
+-- Insert sample posts
+INSERT INTO posts (header, description, author, author_role, author_role_display, user_id) 
+VALUES 
+(
+    'Welcome to Refill Studios!',
+    'We are excited to announce our new community platform. Feel free to share your thoughts and feedback!',
+    'admin',
+    'Admin',
+    'Admin',
+    2
+),
+(
+    'New Game Announcement',
+    'We are working on an exciting new project. Stay tuned for more updates!',
+    'artist1',
+    'Artist',
+    'Artist',
+    3
+);
+
+-- Insert sample comments
+INSERT INTO comments (post_id, username, user_id, text, is_dev) 
+VALUES 
+(
+    1,
+    'testuser',
+    1,
+    'Excited to be part of this community!',
+    FALSE
+),
+(
+    1,
+    'admin',
+    2,
+    'Welcome! We are glad to have you here.',
+    TRUE
+),
+(
+    2,
+    'testuser',
+    1,
+    'Looking forward to the new game!',
+    FALSE
+);
+
+-- Display confirmation
+SELECT 'Database setup complete!' AS message;
+SELECT COUNT(*) AS total_users FROM users;
+SELECT COUNT(*) AS total_posts FROM posts;
+SELECT COUNT(*) AS total_comments FROM comments;

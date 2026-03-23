@@ -1,5 +1,3 @@
-// account-settings.js - Updated with role dropdown
-
 let currentUser = null;
 let availableRoles = [];
 

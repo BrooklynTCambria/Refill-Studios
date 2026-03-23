@@ -1,6 +1,3 @@
-// header-system.js - Universal Header System for All Pages
-
-// header-system.js - Updated createUniversalHeader function
 function createUniversalHeader() {
     const header = document.querySelector('header');
     if (!header) return;

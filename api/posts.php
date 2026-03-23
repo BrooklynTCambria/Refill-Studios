@@ -61,8 +61,7 @@ switch ($method) {
                 break;
             }
             
-            // Check if user has permission to post (using can_post flag)
-            // For backward compatibility, also check old role field
+            // Check if user has permission to post
             $canPost = false;
             
             // Check new can_post flag
@@ -99,7 +98,7 @@ switch ($method) {
                 $imageData = $data['image'];
             }
             
-            // Determine the role to display (use selected_role if available, otherwise use old role)
+            // Determine the role to display
             $displayRole = isset($user['selected_role']) ? $user['selected_role'] : $user['role'];
             
             $stmt = $pdo->prepare("
@@ -162,7 +161,7 @@ switch ($method) {
                 break;
             }
             
-            // Check if user is admin (using old role or new selected_role)
+            // Check if user is admin
             $isAdmin = false;
             if (isset($user['role']) && $user['role'] === 'admin') {
                 $isAdmin = true;
