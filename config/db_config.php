@@ -37,7 +37,7 @@ function createSession($userId) {
     $token = generateSessionToken();
     $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
     
-    $stmt = $pdo->prepare("INSERT INTO user_sessions (user_id, session_token, expires_at) VALUES (?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT INTO sessions (user_id, session_token, expires_at) VALUES (?, ?, ?)");
     $stmt->execute([$userId, $token, $expires]);
     
     return $token;
@@ -52,7 +52,7 @@ if (!function_exists('validateSession')) {
 
         $stmt = $pdo->prepare("
             SELECT u.* FROM users u 
-            JOIN user_sessions s ON u.id = s.user_id 
+            JOIN sessions s ON u.id = s.user_id 
             WHERE s.session_token = ? AND s.expires_at > NOW()
         ");
         $stmt->execute(array($token));
@@ -64,7 +64,7 @@ function deleteSession($token) {
     $pdo = getDBConnection();
     if (!$pdo) return;
     
-    $stmt = $pdo->prepare("DELETE FROM user_sessions WHERE session_token = ?");
+    $stmt = $pdo->prepare("DELETE FROM sessions WHERE session_token = ?");
     $stmt->execute([$token]);
 }
 ?>

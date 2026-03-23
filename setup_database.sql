@@ -3,8 +3,8 @@ DROP DATABASE IF EXISTS refill_studios;
 CREATE DATABASE refill_studios;
 USE refill_studios;
 
--- Create allowed_roles table FIRST (since users table references it)
-CREATE TABLE allowed_roles (
+-- Create roles table FIRST (since users table references it)
+CREATE TABLE roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     role_name VARCHAR(50) UNIQUE NOT NULL,
     can_post BOOLEAN DEFAULT FALSE,
@@ -13,7 +13,7 @@ CREATE TABLE allowed_roles (
 );
 
 -- Insert available roles
-INSERT INTO allowed_roles (role_name, can_post, is_admin, display_order) VALUES
+INSERT INTO roles (role_name, can_post, is_admin, display_order) VALUES
 ('Default', FALSE, FALSE, 1),
 ('Artist', TRUE, FALSE, 2),
 ('Programmer', TRUE, FALSE, 3),
@@ -25,7 +25,7 @@ INSERT INTO allowed_roles (role_name, can_post, is_admin, display_order) VALUES
 ('UI/UX Designer', TRUE, FALSE, 9),
 ('Admin', TRUE, TRUE, 99);
 
--- Create users table (now allowed_roles exists)
+-- Create users table (now roles exists)
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE users (
 -- Note: Foreign key removed for simplicity, role validation handled by PHP
 
 -- Create sessions table
-CREATE TABLE user_sessions (
+CREATE TABLE sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     session_token VARCHAR(255) UNIQUE NOT NULL,

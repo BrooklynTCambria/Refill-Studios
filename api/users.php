@@ -55,7 +55,7 @@ if (!function_exists('validateSession')) {
 
         $stmt = $pdo->prepare("
             SELECT u.* FROM users u 
-            JOIN user_sessions s ON u.id = s.user_id 
+            JOIN sessions s ON u.id = s.user_id 
             WHERE s.session_token = ? AND s.expires_at > NOW()
         ");
         $stmt->execute(array($token));
@@ -68,7 +68,7 @@ function getAvailableRoles() {
     $pdo = getDBConnection();
     if (!$pdo) return [];
     
-    $stmt = $pdo->query("SELECT role_name, can_post, is_admin, display_order FROM allowed_roles ORDER BY display_order");
+    $stmt = $pdo->query("SELECT role_name, can_post, is_admin, display_order FROM roles ORDER BY display_order");
     return $stmt->fetchAll();
 }
 
@@ -127,14 +127,14 @@ try {
             }
             
             // Delete old sessions
-            $stmt = $pdo->prepare("DELETE FROM user_sessions WHERE user_id = ?");
+            $stmt = $pdo->prepare("DELETE FROM sessions WHERE user_id = ?");
             $stmt->execute(array($user['id']));
             
             // Create new session
             $token = generateRandomToken(32);
             $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
             
-            $stmt = $pdo->prepare("INSERT INTO user_sessions (user_id, session_token, expires_at) VALUES (?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO sessions (user_id, session_token, expires_at) VALUES (?, ?, ?)");
             $stmt->execute(array($user['id'], $token, $expires));
             
             // Set cookie
@@ -206,7 +206,7 @@ try {
                 $token = generateRandomToken(32);
                 $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
                 
-                $stmt = $pdo->prepare("INSERT INTO user_sessions (user_id, session_token, expires_at) VALUES (?, ?, ?)");
+                $stmt = $pdo->prepare("INSERT INTO sessions (user_id, session_token, expires_at) VALUES (?, ?, ?)");
                 $stmt->execute(array($userId, $token, $expires));
                 
                 setcookie('session_token', $token, time() + (30 * 24 * 60 * 60), '/', '', false, true);
@@ -232,7 +232,7 @@ try {
         // Handle logout
         elseif ($data['action'] === 'logout') {
             if (isset($_COOKIE['session_token'])) {
-                $stmt = $pdo->prepare("DELETE FROM user_sessions WHERE session_token = ?");
+                $stmt = $pdo->prepare("DELETE FROM sessions WHERE session_token = ?");
                 $stmt->execute(array($_COOKIE['session_token']));
                 setcookie('session_token', '', time() - 3600, '/');
             }
@@ -261,7 +261,7 @@ try {
             $stmt = $pdo->prepare("
                 SELECT u.id, u.username, u.email, u.selected_role as role, u.profile_pic, u.can_post
                 FROM users u 
-                JOIN user_sessions s ON u.id = s.user_id 
+                JOIN sessions s ON u.id = s.user_id 
                 WHERE s.session_token = ? AND s.expires_at > NOW()
             ");
             $stmt->execute(array($token));
@@ -318,7 +318,7 @@ try {
         
         $stmt = $pdo->prepare("
             SELECT u.* FROM users u 
-            JOIN user_sessions s ON u.id = s.user_id 
+            JOIN sessions s ON u.id = s.user_id 
             WHERE s.session_token = ? AND s.expires_at > NOW()
         ");
         $stmt->execute(array($token));
@@ -373,7 +373,7 @@ try {
             $newRole = $data['selected_role'];
             
             // Check if role exists and is not admin (admin can't be selected by users)
-            $stmt = $pdo->prepare("SELECT role_name, can_post, is_admin FROM allowed_roles WHERE role_name = ?");
+            $stmt = $pdo->prepare("SELECT role_name, can_post, is_admin FROM roles WHERE role_name = ?");
             $stmt->execute(array($newRole));
             $roleInfo = $stmt->fetch();
             
@@ -445,7 +445,7 @@ try {
         
         $stmt = $pdo->prepare("
             SELECT u.* FROM users u 
-            JOIN user_sessions s ON u.id = s.user_id 
+            JOIN sessions s ON u.id = s.user_id 
             WHERE s.session_token = ? AND s.expires_at > NOW()
         ");
         $stmt->execute(array($token));
