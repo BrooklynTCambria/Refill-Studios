@@ -52,9 +52,6 @@ CREATE TABLE posts (
     author_role_display VARCHAR(50),
     user_id INT NOT NULL,
     image_data LONGTEXT,
-    image_name VARCHAR(255),
-    image_type VARCHAR(50),
-    image_size INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (author) REFERENCES users(username) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
