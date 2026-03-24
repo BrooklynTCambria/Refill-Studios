@@ -9,11 +9,14 @@ $method = $_SERVER['REQUEST_METHOD'];
 switch ($method) {
     case 'GET':
         try {
-            // Get all posts with comments
+            // Get all posts with author info from users table
             $stmt = $pdo->query("
                 SELECT p.*, 
-                       (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+                    u.username as author,
+                    u.selected_role as author_role,
+                    (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
                 FROM posts p 
+                JOIN users u ON p.user_id = u.id
                 ORDER BY p.created_at DESC
             ");
             $posts = $stmt->fetchAll();
@@ -21,7 +24,7 @@ switch ($method) {
             // Get comments for each post
             foreach ($posts as &$post) {
                 $stmt = $pdo->prepare("
-                    SELECT c.*, u.username as author_name 
+                    SELECT c.*, u.username, u.selected_role as user_role
                     FROM comments c 
                     JOIN users u ON c.user_id = u.id
                     WHERE c.post_id = ? 
@@ -34,9 +37,6 @@ switch ($method) {
                 if ($post['image_data']) {
                     $post['image'] = [
                         'dataUrl' => $post['image_data'],
-                        'name' => $post['image_name'],
-                        'type' => $post['image_type'],
-                        'size' => $post['image_size']
                     ];
                 }
                 unset($post['image_data']);
@@ -49,87 +49,66 @@ switch ($method) {
         break;
         
     case 'POST':
-        try {
-            // Create new post
-            $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
-            $user = validateSession($token);
-            
-            // Check if user is logged in
-            if (!$user) {
-                http_response_code(401);
-                echo json_encode(['error' => 'Please login to create posts']);
-                break;
-            }
-            
-            // Check if user has permission to post
-            $canPost = false;
-            
-            // Check new can_post flag
-            if (isset($user['can_post']) && $user['can_post'] == 1) {
-                $canPost = true;
-            }
-            // Check selected_role if can_post flag isn't set
-            else if (isset($user['selected_role']) && $user['selected_role'] !== 'Default') {
-                $canPost = true;
-            }
-            // Fallback: Check old role field for admin/developer
-            else if (isset($user['role']) && in_array($user['role'], ['admin', 'developer'])) {
-                $canPost = true;
-            }
-            
-            if (!$canPost) {
-                http_response_code(403);
-                echo json_encode(['error' => 'You need to select a creative role (Artist, Programmer, Modeler, etc.) to create posts. Go to Account Settings to select your role.']);
-                break;
-            }
-            
-            $data = json_decode(file_get_contents('php://input'), true);
-            
-            // Validate required fields
-            if (empty($data['header']) || empty($data['description'])) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Header and description are required']);
-                break;
-            }
-            
-            // Handle image data
-            $imageData = null;
-            if (isset($data['image']) && isset($data['image']['dataUrl'])) {
-                $imageData = $data['image'];
-            }
-            
-            // Determine the role to display
-            $displayRole = isset($user['selected_role']) ? $user['selected_role'] : $user['role'];
-            
-            $stmt = $pdo->prepare("
-                INSERT INTO posts (header, description, author, author_role, author_role_display, user_id, image_data, image_name, image_type, image_size) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ");
-
-            $stmt->execute([
-                $data['header'],
-                $data['description'],
-                $user['username'],
-                $displayRole, // Use the selected role as author_role
-                $displayRole, // Store display role separately
-                $user['id'],
-                isset($imageData['dataUrl']) ? $imageData['dataUrl'] : null,
-                isset($imageData['name']) ? $imageData['name'] : null,
-                isset($imageData['type']) ? $imageData['type'] : null,
-                isset($imageData['size']) ? $imageData['size'] : null
-            ]);
-            
-            echo json_encode([
-                'success' => true,
-                'id' => $pdo->lastInsertId(),
-                'message' => 'Post created successfully'
-            ]);
-        } catch (Exception $e) {
-            error_log("Error creating post: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to create post: ' . $e->getMessage()]);
+    try {
+        $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
+        $user = validateSession($token);
+        
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Please login to create posts']);
+            break;
         }
-        break;
+        
+        // Check if user has permission to post
+        $canPost = ($user['selected_role'] !== 'Default' && $user['selected_role'] !== 'Admin') || 
+                   ($user['selected_role'] === 'Admin');
+        
+        if (!$canPost) {
+            http_response_code(403);
+            echo json_encode(['error' => 'You need to select a creative role to create posts']);
+            break;
+        }
+        
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        if (empty($data['header']) || empty($data['description'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Header and description are required']);
+            break;
+        }
+        
+        // Handle image data
+        $imageData = null;
+        if (isset($data['image']) && isset($data['image']['dataUrl'])) {
+            $imageData = $data['image']['dataUrl'];
+        }
+        
+        // Insert post using user_id only (no author field)
+        $stmt = $pdo->prepare("
+            INSERT INTO posts (header, description, user_id, image_data, author_role, author_role_display) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        
+        $stmt->execute([
+            $data['header'],
+            $data['description'],
+            $user['id'],
+            $imageData,
+            $user['selected_role'],
+            $user['selected_role']
+        ]);
+        
+        echo json_encode([
+            'success' => true,
+            'id' => $pdo->lastInsertId(),
+            'message' => 'Post created successfully'
+        ]);
+    } catch (Exception $e) {
+        error_log("Error creating post: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to create post: ' . $e->getMessage()]);
+    }
+    break;
         
     case 'DELETE':
         try {

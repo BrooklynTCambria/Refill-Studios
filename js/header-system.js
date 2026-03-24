@@ -37,9 +37,6 @@ function createUniversalHeader() {
         }
     }
     
-    // Get current notification setting
-    const notifyNewPosts = localStorage.getItem('notifyNewPosts') !== 'false';
-    
     // Create dropdown HTML
     const dropdownHTML = `
         <div class="account-dropdown">
@@ -63,21 +60,6 @@ function createUniversalHeader() {
                         <span class="info-label">Status:</span>
                         <span class="info-value">Logged In</span>
                     </div>
-                </div>
-                ` : ''}
-                
-                ${window.currentUser.isLoggedIn ? `
-                <!-- Notification Toggle (only when logged in) -->
-                <div class="notification-toggle">
-                    <div class="notification-text">
-                        <span class="dropdown-icon">🔔</span>
-                        <span>New Post Alerts</span>
-                        <span class="notification-badge" id="notification-badge" style="display: none;">!</span>
-                    </div>
-                    <label class="toggle-switch-small">
-                        <input type="checkbox" id="notify-toggle" ${notifyNewPosts ? 'checked' : ''}>
-                        <span class="toggle-slider-small"></span>
-                    </label>
                 </div>
                 ` : ''}
                 
@@ -189,23 +171,6 @@ function setupDropdownEvents() {
         // Close dropdown after clicking
         dropdownContent.classList.remove('active');
     });
-    
-    // Notification toggle
-    const notifyToggle = document.getElementById('notify-toggle');
-    if (notifyToggle) {
-        notifyToggle.addEventListener('change', function(e) {
-            e.stopPropagation();
-            localStorage.setItem('notifyNewPosts', this.checked.toString());
-            
-            if (this.checked) {
-                console.log('Notifications enabled');
-            } else {
-                console.log('Notifications disabled');
-                const badge = document.getElementById('notification-badge');
-                if (badge) badge.style.display = 'none';
-            }
-        });
-    }
     
     // Close dropdown when clicking outside
     document.addEventListener('click', function(event) {

@@ -318,43 +318,6 @@ function closeImageModal() {
     }
 }
 
-// NOTIFICATION SYSTEM
-
-function checkForNewPostNotification() {
-    const newPostAdded = sessionStorage.getItem('newPostAdded');
-    if (newPostAdded === 'true') {
-        const latestPost = JSON.parse(sessionStorage.getItem('latestPost') || '{}');
-        
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #2d4a2d;
-            color: #a3d9a3;
-            padding: 15px 20px;
-            border-radius: 5px;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            animation: slideIn 0.3s ease;
-        `;
-        notification.innerHTML = `
-            <strong>✓ New post published!</strong><br>
-            "${latestPost.header || 'New Post'}"
-        `;
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transition = 'opacity 0.3s ease';
-            setTimeout(() => notification.remove(), 300);
-        }, 5000);
-        
-        sessionStorage.removeItem('newPostAdded');
-        sessionStorage.removeItem('latestPost');
-    }
-}
-
 // Also update the user role indicator display
 function updateUIForUserRole() {
     const userRoleIndicator = document.getElementById('user-role-indicator');
@@ -511,7 +474,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(async () => {
         await renderPosts();
         setupEventListeners();
-        checkForNewPostNotification();
         updateUIForUserRole();
     }, 100);
 });

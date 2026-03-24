@@ -1422,21 +1422,6 @@ h2 {
     color: white;
 }
 
-/* Notification toggle in dropdown */
-.notification-toggle {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid #414141;
-}
-
-.notification-text {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
 .toggle-switch-small {
     position: relative;
     display: inline-block;
@@ -1480,16 +1465,6 @@ input:checked + .toggle-slider-small {
 
 input:checked + .toggle-slider-small:before {
     transform: translateX(20px);
-}
-
-.notification-badge {
-    background-color: #ff4444;
-    color: white;
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 10px;
-    margin-left: 5px;
-    animation: pulse 2s infinite;
 }
 
 @keyframes pulse {

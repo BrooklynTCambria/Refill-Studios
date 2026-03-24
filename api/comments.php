@@ -26,25 +26,19 @@ if ($method === 'POST') {
             return;
         }
         
-        // Check if user is a developer
+        // Check if user is a developer (has creative role)
         $isDev = false;
-        
-        // Check using new selected_role
         if (isset($user['selected_role']) && $user['selected_role'] !== 'Default') {
             $isDev = true;
         }
-        // Check using old role
-        else if (isset($user['role']) && in_array($user['role'], ['admin', 'developer'])) {
-            $isDev = true;
-        }
         
+        // Insert comment using user_id only
         $stmt = $pdo->prepare("
-            INSERT INTO comments (post_id, username, user_id, text, is_dev) 
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO comments (post_id, user_id, text, is_dev) 
+            VALUES (?, ?, ?, ?)
         ");
         $stmt->execute([
             $data['postId'],
-            $user['username'],
             $user['id'],
             $data['text'],
             $isDev ? 1 : 0
@@ -88,9 +82,6 @@ if ($method === 'POST') {
         
         // Check if user is admin
         $isAdmin = false;
-        if (isset($user['role']) && $user['role'] === 'admin') {
-            $isAdmin = true;
-        }
         if (isset($user['selected_role']) && $user['selected_role'] === 'Admin') {
             $isAdmin = true;
         }
