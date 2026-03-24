@@ -16,7 +16,7 @@ html, body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #4E4E4E;
+  background-color: #3f2d44;
   padding-bottom: 6px; /* tiny visible gap */
 }
 
@@ -60,14 +60,14 @@ header {
 
 /* NAVIGATION */
 nav {
-  background-color: #4E4E4E;
+  background-color: #3f2d44;
   display: flex;
   padding: 1.5vh 3vw;
   gap: 1vw;
 }
 
 .nav-btn {
-  background-color: #333;
+  background-color: #56415c;
   color: white;
   font-weight: bold;
   padding: 1.2vh 2vw;
@@ -90,12 +90,12 @@ nav {
 }
 
 nav {
-  background-color: #4E4E4E;
+  background-color: #3f2d44;
   display: flex;
   padding: 0;
   gap: 1vw;
   padding-left: 3vw;
-  border-bottom: 4px solid #2a2a2a;
+  border-bottom: 4px solid #3f2d44;
   margin-top: 6px; /* This creates a tiny gap */
 }
 
@@ -120,6 +120,9 @@ main {
   line-height: 1.8;
   text-align: top;
   max-width: 60%;
+  padding: 1.2vh 2vw;
+  background-color: #3b3b3b;
+  border-radius: 10px;
 }
 
 h2 {
@@ -302,6 +305,7 @@ h2 {
   justify-content: center;
   cursor: pointer;
   filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5));
+  
 }
 
 .prev-logo {
@@ -333,6 +337,9 @@ h2 {
   height: auto;
   max-width: 100%; /* Fill preview containers */
   max-height: 100%; /* Fill preview containers */
+  border: none;
+  border-radius: 10px 10px 10px 10px;
+  box-shadow: 0 0 40px rgba(255, 0, 255, 0.4);
   object-fit: contain;
   transition: all 0.5s ease;
 }
@@ -468,6 +475,7 @@ h2 {
   transition: background-color 0.2s ease, transform 0.2s ease;
   border-bottom: 4px solid transparent;
   margin-top: 60px;
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
 
   left: 50%;
   transform: translateX(-50%);
@@ -966,10 +974,11 @@ h2 {
 }
 
 /* =========================================== */
-/* CREATE POST PAGE SPECIFIC STYLES */
+/* CREATE POST PAGE - TWO COLUMN LAYOUT */
 /* =========================================== */
+
 .create-post-container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 30px;
 }
@@ -1013,11 +1022,27 @@ h2 {
   color: #f0d4d4;
 }
 
+/* TWO COLUMN FORM LAYOUT */
 .create-post-form {
   background-color: #333;
   border-radius: 10px;
   padding: 30px;
   margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+}
+
+/* Left Column - 60% width */
+.form-left-column {
+  flex: 3;
+  min-width: 250px;
+}
+
+/* Right Column - 40% width */
+.form-right-column {
+  flex: 2;
+  min-width: 250px;
 }
 
 .form-group {
@@ -1042,6 +1067,7 @@ h2 {
   font-size: 16px;
   font-family: 'Trebuchet MS', sans-serif;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .form-input:focus, .form-textarea:focus {
@@ -1059,16 +1085,21 @@ h2 {
   color: #aaa;
 }
 
-/* Image Upload Section */
+/* Image Upload Section - Full height to match left column */
 .image-upload-section {
   background-color: #414141;
   border: 2px dashed #525252;
   border-radius: 5px;
-  padding: 30px;
+  padding: 40px 20px;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-bottom: 20px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .image-upload-section:hover {
@@ -1077,7 +1108,7 @@ h2 {
 }
 
 .image-upload-icon {
-  font-size: 48px;
+  font-size: 64px;
   color: #525252;
   margin-bottom: 15px;
 }
@@ -1102,9 +1133,10 @@ h2 {
 
 .preview-image {
   max-width: 100%;
-  max-height: 300px;
+  max-height: 250px;
   border-radius: 5px;
   object-fit: cover;
+  border: 2px solid #525252;
 }
 
 .remove-image-btn {
@@ -1140,7 +1172,7 @@ h2 {
   color: #ff4444;
 }
 
-/* Form Buttons */
+/* Form Buttons - Full width row */
 .form-buttons {
   display: flex;
   gap: 15px;
@@ -1148,6 +1180,7 @@ h2 {
   margin-top: 30px;
   padding-top: 20px;
   border-top: 2px solid #525252;
+  width: 100%;
 }
 
 .post-btn, .cancel-btn {
@@ -1229,57 +1262,47 @@ h2 {
 }
 
 /* =========================================== */
-/* RESPONSIVE DESIGN - ALL PAGES */
+/* RESPONSIVE DESIGN - CREATE POST PAGE */
 /* =========================================== */
 @media (max-width: 1024px) {
-  .updates-main {
-    flex-direction: column;
-    gap: 20px;
-    padding: 20px;
-  }
-  
-  .posts-column, .comments-column {
-    max-height: 50vh;
-  }
-  
-  .posts-column {
-    flex: none;
-    width: 100%;
-  }
-  
-  .comments-column {
-    flex: none;
-    width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
-  .updates-main {
-    padding: 15px;
-  }
-  
-  .posts-column, .comments-column {
-    padding: 20px;
-  }
-  
-  .admin-add-post {
-    width: 45px;
-    height: 45px;
-    font-size: 24px;
-    top: 20px;
-    right: 20px;
-  }
-  
-  .post-image {
-    max-height: 200px;
-  }
-  
   .create-post-container {
     padding: 20px;
   }
   
   .create-post-form {
+    padding: 25px;
+    gap: 25px;
+  }
+  
+  .image-upload-section {
+    min-height: 240px;
+    padding: 30px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .create-post-container {
+    padding: 15px;
+  }
+  
+  .create-post-form {
+    flex-direction: column;
     padding: 20px;
+  }
+  
+  .form-left-column,
+  .form-right-column {
+    flex: auto;
+    width: 100%;
+  }
+  
+  .image-upload-section {
+    min-height: 200px;
+    padding: 25px 20px;
+  }
+  
+  .image-upload-icon {
+    font-size: 48px;
   }
   
   .form-buttons {
@@ -1294,6 +1317,32 @@ h2 {
     flex-direction: column;
     gap: 10px;
     text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 24px;
+  }
+  
+  .form-label {
+    font-size: 16px;
+  }
+  
+  .image-upload-section {
+    padding: 20px;
+  }
+  
+  .image-upload-icon {
+    font-size: 40px;
+  }
+  
+  .image-upload-text {
+    font-size: 14px;
+  }
+  
+  .image-upload-note {
+    font-size: 12px;
   }
 }
 

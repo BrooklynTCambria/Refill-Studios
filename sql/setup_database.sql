@@ -1,14 +1,8 @@
--- ============================================
--- DATABASE: refill_studios
--- ============================================
-
 DROP DATABASE IF EXISTS refill_studios;
 CREATE DATABASE refill_studios;
 USE refill_studios;
 
--- ============================================
--- TABLE: roles
--- ============================================
+
 CREATE TABLE roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     role_name VARCHAR(50) UNIQUE NOT NULL,  -- role_name is UNIQUE
@@ -30,9 +24,7 @@ INSERT INTO roles (role_name, can_post, is_admin, display_order) VALUES
 ('UI/UX Designer', TRUE, FALSE, 9),
 ('Admin', TRUE, TRUE, 99);
 
--- ============================================
--- TABLE: users (FIXED - removed problematic foreign key)
--- ============================================
+
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -48,9 +40,7 @@ CREATE TABLE users (
     -- We'll handle role validation in PHP instead
 );
 
--- ============================================
--- TABLE: sessions
--- ============================================
+
 CREATE TABLE sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -61,9 +51,7 @@ CREATE TABLE sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- ============================================
--- TABLE: posts (UPDATED - NO author column)
--- ============================================
+
 CREATE TABLE posts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     header VARCHAR(100) NOT NULL,
@@ -79,9 +67,7 @@ CREATE TABLE posts (
     -- Removed author_role foreign key to avoid issues
 );
 
--- ============================================
--- TABLE: comments (UPDATED - NO username column)
--- ============================================
+
 CREATE TABLE comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     post_id INT NOT NULL,
@@ -95,18 +81,12 @@ CREATE TABLE comments (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- ============================================
--- INDEXES for performance
--- ============================================
 CREATE INDEX idx_comments_post_id ON comments(post_id);
 CREATE INDEX idx_comments_user_id ON comments(user_id);
 CREATE INDEX idx_posts_user_id ON posts(user_id);
 CREATE INDEX idx_sessions_token ON sessions(session_token);
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
 
--- ============================================
--- SAMPLE DATA
--- ============================================
 
 -- Insert test users (password: "password" for all)
 INSERT INTO users (username, email, password_hash, selected_role, can_post, profile_pic) 
@@ -173,15 +153,12 @@ VALUES
     TRUE
 ),
 (
-    2,  -- post_id
+    2,  -- post_id 
     1,  -- user_id for testuser
     'Looking forward to the new game!',
     FALSE
 );
 
--- ============================================
--- VERIFICATION QUERIES
--- ============================================
 
 -- Show all users
 SELECT '=== USERS ===' as '';

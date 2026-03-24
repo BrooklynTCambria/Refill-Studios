@@ -12,7 +12,6 @@ switch ($method) {
             // Get all posts with author info from users table
             $stmt = $pdo->query("
                 SELECT p.*, 
-                    u.username as author,
                     u.selected_role as author_role,
                     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
                 FROM posts p 
@@ -131,7 +130,7 @@ switch ($method) {
             }
             
             // Check if user owns the post or is admin
-            $stmt = $pdo->prepare("SELECT user_id, author FROM posts WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT user_id FROM posts WHERE id = ?");
             $stmt->execute([$postId]);
             $post = $stmt->fetch();
             

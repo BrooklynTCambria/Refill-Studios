@@ -47,19 +47,23 @@
         </div>
         
         <form class="create-post-form" id="create-post-form">
-          <div class="form-group">
-            <label class="form-label">HEADER</label>
-            <input type="text" class="form-input" id="post-header" placeholder="Enter post header/title" maxlength="100" required>
-            <div class="char-counter" id="header-counter">0/100</div>
+          <!-- Left Column: Header and Description -->
+          <div class="form-left-column">
+            <div class="form-group">
+              <label class="form-label">HEADER</label>
+              <input type="text" class="form-input" id="post-header" placeholder="Enter post header/title" maxlength="100" required>
+              <div class="char-counter" id="header-counter">0/100</div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">DESCRIPTION</label>
+              <textarea class="form-textarea" id="post-description" placeholder="Enter post description/content" maxlength="1000" required></textarea>
+              <div class="char-counter" id="desc-counter">0/1000</div>
+            </div>
           </div>
           
-          <div class="form-group">
-            <label class="form-label">DESCRIPTION</label>
-            <textarea class="form-textarea" id="post-description" placeholder="Enter post description/content" maxlength="1000" required></textarea>
-            <div class="char-counter" id="desc-counter">0/1000</div>
-          </div>
-          
-          <div class="form-group">
+          <!-- Right Column: Image Upload -->
+          <div class="form-right-column">
             <label class="form-label">PICTURE (OPTIONAL)</label>
             <div class="image-upload-section" id="image-upload">
               <div class="image-upload-icon">📷</div>
