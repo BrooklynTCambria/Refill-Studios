@@ -1,0 +1,6 @@
+[22-Mar-2026 21:11:27 UTC] PHP Fatal error:  Call to undefined function random_bytes() in C:\UwAmp\www\Refill-Studios\api\users.php on line 84
+[22-Mar-2026 21:11:27 UTC] PHP Stack trace:
+[22-Mar-2026 21:11:27 UTC] PHP   1. {main}() C:\UwAmp\www\Refill-Studios\api\users.php:0
+[22-Mar-2026 21:12:03 UTC] PHP Fatal error:  Call to undefined function random_bytes() in C:\UwAmp\www\Refill-Studios\api\users.php on line 84
+[22-Mar-2026 21:12:03 UTC] PHP Stack trace:
+[22-Mar-2026 21:12:03 UTC] PHP   1. {main}() C:\UwAmp\www\Refill-Studios\api\users.php:0

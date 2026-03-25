@@ -1,96 +1,47 @@
 <?php
 session_start();
-header("Content-Type: application/json");
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST");
-header("Access-Control-Allow-Headers: Content-Type");
+require_once 'config/db_config.php';
 
-require_once '../config/database.php';
+$error = '';
+$success = '';
 
-$database = new Database();
-$db = $database->getConnection();
-
-if (!$db) {
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
-    exit;
-}
-
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-    exit;
-}
-
-$data = json_decode(file_get_contents("php://input"));
-
-if (!$data || !isset($data->username) || !isset($data->email) || !isset($data->password)) {
-    echo json_encode(['success' => false, 'message' => 'All fields are required']);
-    exit;
-}
-
-// Validate input
-$username = trim($data->username);
-$email = trim($data->email);
-$password = $data->password;
-
-if (strlen($username) < 3) {
-    echo json_encode(['success' => false, 'message' => 'Username must be at least 3 characters']);
-    exit;
-}
-
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid email format']);
-    exit;
-}
-
-if (strlen($password) < 6) {
-    echo json_encode(['success' => false, 'message' => 'Password must be at least 6 characters']);
-    exit;
-}
-
-try {
-    // Check if user already exists
-    $check_query = "SELECT id FROM users WHERE username = :username OR email = :email";
-    $check_stmt = $db->prepare($check_query);
-    $check_stmt->bindParam(':username', $username);
-    $check_stmt->bindParam(':email', $email);
-    $check_stmt->execute();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = trim($_POST['email']);
+    $username = trim($_POST['username']);
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
     
-    if ($check_stmt->rowCount() > 0) {
-        echo json_encode(['success' => false, 'message' => 'Username or email already exists']);
-        exit;
-    }
-    
-    // Create new user
-    $password_hash = password_hash($password, PASSWORD_DEFAULT);
-    $profile_pic = 'images/account.png';
-    $role = 'user';
-    
-    $query = "INSERT INTO users (username, email, password_hash, role, profile_pic) 
-              VALUES (:username, :email, :password, :role, :profile_pic)";
-    
-    $stmt = $db->prepare($query);
-    $stmt->bindParam(':username', $username);
-    $stmt->bindParam(':email', $email);
-    $stmt->bindParam(':password', $password_hash);
-    $stmt->bindParam(':role', $role);
-    $stmt->bindParam(':profile_pic', $profile_pic);
-    
-    if ($stmt->execute()) {
-        echo json_encode([
-            'success' => true,
-            'message' => 'Registration successful! You can now login.'
-        ]);
+    // Validation
+    if (empty($email) || empty($username) || empty($password)) {
+        $error = 'All fields are required.';
+    } elseif ($password !== $confirm_password) {
+        $error = 'Passwords do not match.';
+    } elseif (strlen($password) < 6) {
+        $error = 'Password must be at least 6 characters long.';
     } else {
-        echo json_encode(['success' => false, 'message' => 'Registration failed']);
+        // Check if user already exists
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? OR username = ?");
+        $stmt->execute([$email, $username]);
+        
+        if ($stmt->rowCount() > 0) {
+            $error = 'Email or username already exists.';
+        } else {
+            // Create new user
+            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("INSERT INTO users (email, username, password_hash) VALUES (?, ?, ?)");
+            
+            if ($stmt->execute([$email, $username, $password_hash])) {
+                // Auto login
+                $userId = $pdo->lastInsertId();
+                $token = createSession($userId);
+                setcookie('session_token', $token, time() + (30 * 24 * 60 * 60), '/');
+                
+                header('Location: updates.html');
+                exit();
+            } else {
+                $error = 'Registration failed. Please try again.';
+            }
+        }
     }
-} catch (Exception $e) {
-    error_log("Registration error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Server error occurred']);
 }
 ?>

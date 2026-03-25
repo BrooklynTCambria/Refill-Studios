@@ -1,0 +1,213 @@
+function createUniversalHeader() {
+    const header = document.querySelector('header');
+    if (!header) return;
+    
+    const rightSection = header.querySelector('.right');
+    if (!rightSection) return;
+    
+    // Make sure we have user data - check cookies too
+    if (!window.currentUser || !window.currentUser.isLoggedIn) {
+        // Check if there's a session token in cookies
+        const sessionToken = document.cookie.split('; ').find(row => row.startsWith('session_token='));
+        
+        if (sessionToken) {
+            // User might be logged in, wait for user-system to load
+            setTimeout(() => {
+                if (window.currentUser && window.currentUser.isLoggedIn) {
+                    createUniversalHeader(); // Recreate with correct data
+                } else {
+                    createUniversalHeader(); // Create with guest data
+                }
+            }, 100);
+            return;
+        }
+        
+        window.currentUser = {
+            username: 'Guest',
+            role: 'user',
+            isLoggedIn: false,
+            profilePic: 'images/account.png'
+        };
+        
+        // Try to load from localStorage
+        const savedUser = JSON.parse(localStorage.getItem('refillUser'));
+        if (savedUser && savedUser.isLoggedIn) {
+            Object.assign(window.currentUser, savedUser);
+            window.currentUser.isLoggedIn = true;
+        }
+    }
+    
+    // Create dropdown HTML
+    const dropdownHTML = `
+        <div class="account-dropdown">
+            <div class="account-trigger" id="account-trigger">
+                <img src="${window.currentUser.profilePic || 'images/account.png'}" alt="Account" class="profile-pic-small" id="profile-pic-header">
+                <p class="account-link" id="account-link-text">${window.currentUser.username}</p>
+            </div>
+            <div class="dropdown-content" id="dropdown-content">
+                <!-- Account Info Display (only when logged in) -->
+                ${window.currentUser.isLoggedIn ? `
+                <div class="account-info-display">
+                    <div class="account-info-item">
+                        <span class="info-label">User:</span>
+                        <span class="info-value">${window.currentUser.username}</span>
+                    </div>
+                    <div class="account-info-item">
+                        <span class="info-label">Role:</span>
+                        <span class="info-value">${window.currentUser.role}</span>
+                    </div>
+                    <div class="account-info-item">
+                        <span class="info-label">Status:</span>
+                        <span class="info-value">Logged In</span>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- Account Settings (only when logged in) -->
+                ${window.currentUser.isLoggedIn ? `
+                <div class="dropdown-item" id="settings-item">
+                    <span class="dropdown-icon">⚙️</span>
+                    <span>Account Settings</span>
+                </div>
+                ` : ''}
+                
+                <div class="dropdown-divider"></div>
+                
+                <!-- Login/Logout Button -->
+                ${window.currentUser.isLoggedIn ? `
+                <div class="dropdown-item" id="logout-item">
+                    <span class="dropdown-icon">🚪</span>
+                    <span>Logout</span>
+                </div>
+                ` : `
+                <div class="dropdown-item" id="login-item">
+                    <span class="dropdown-icon">🔑</span>
+                    <span>Login / Register</span>
+                </div>
+                `}
+            </div>
+        </div>
+    `;
+    
+    rightSection.innerHTML = dropdownHTML;
+    setupDropdownEvents();
+}
+
+function setupDropdownEvents() {
+    const accountTrigger = document.getElementById('account-trigger');
+    const dropdownContent = document.getElementById('dropdown-content');
+    
+    if (!accountTrigger || !dropdownContent) {
+        console.error('Dropdown elements not found!');
+        return;
+    }
+    
+    // Toggle dropdown
+    accountTrigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        dropdownContent.classList.toggle('active');
+    });
+    
+    // Click handling for dropdown items
+    dropdownContent.addEventListener('click', function(e) {
+        // Get the clicked element
+        let target = e.target;
+        
+        // If clicked on icon or text, find the parent dropdown-item
+        if (!target.classList.contains('dropdown-item')) {
+            target = target.closest('.dropdown-item');
+        }
+        
+        if (!target) return;
+        
+        const id = target.id;
+        console.log('Dropdown item clicked:', id);
+        
+        switch(id) {
+            case 'login-item':
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Navigating to account.html');
+                window.location.href = 'account.html';
+                break;
+                
+            case 'settings-item':
+                e.preventDefault();
+                e.stopPropagation();
+                if (window.currentUser && window.currentUser.isLoggedIn) {
+                    console.log('Navigating to account-settings.html');
+                    window.location.href = 'account-settings.html';
+                }
+                break;
+                
+            case 'logout-item':
+                e.preventDefault();
+                e.stopPropagation();
+                if (confirm('Are you sure you want to logout?')) {
+                    // Use the global logout function
+                    if (window.logoutUser) {
+                        window.logoutUser();
+                    } else {
+                        // Fallback logout
+                        document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                        localStorage.removeItem('currentUser');
+                        localStorage.removeItem('refillUser');
+                        localStorage.removeItem('profilePic');
+                        
+                        window.currentUser = {
+                            username: 'Guest',
+                            role: 'user',
+                            isLoggedIn: false,
+                            profilePic: 'images/account.png'
+                        };
+                        
+                        alert('Logged out successfully.');
+                        window.location.href = 'updates.html';
+                    }
+                }
+                break;
+        }
+        
+        // Close dropdown after clicking
+        dropdownContent.classList.remove('active');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdown = document.querySelector('.account-dropdown');
+        if (dropdown && !dropdown.contains(event.target)) {
+            dropdownContent.classList.remove('active');
+        }
+    });
+}
+
+// Navigation handlers
+document.addEventListener('DOMContentLoaded', function() {
+    // Small delay to ensure user-system.js has loaded
+    setTimeout(() => {
+        createUniversalHeader();
+    }, 50);
+    
+    // Navigation button handlers
+    const indexBtn = document.getElementById('index-button');
+    const gamesBtn = document.getElementById('games-button');
+    const updatesBtn = document.getElementById('updates-button');
+    
+    if (indexBtn) {
+        indexBtn.addEventListener('click', function() {
+            window.location.href = 'index.html';
+        });
+    }
+    
+    if (gamesBtn) {
+        gamesBtn.addEventListener('click', function() {
+            window.location.href = 'games.html';
+        });
+    }
+    
+    if (updatesBtn) {
+        updatesBtn.addEventListener('click', function() {
+            window.location.href = 'updates.html';
+        });
+    }
+});

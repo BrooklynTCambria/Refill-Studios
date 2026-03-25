@@ -1,0 +1,16 @@
+[2026-03-22 22:23:00] === API Request Started ===
+[2026-03-22 22:23:00] Request Method: POST
+[2026-03-22 22:23:00] Looking for config at: C:\UwAmp\www\Refill-Studios\api/../config/db_config.php
+[2026-03-22 22:23:00] Database connected successfully
+[2026-03-22 22:23:00] Raw input: {"action":"login","username":"testuser","password":"password"}
+[2026-03-22 22:23:00] Decoded data: Array
+(
+    [action] => login
+    [username] => testuser
+    [password] => password
+)
+
+[2026-03-22 22:23:00] Login attempt for username: testuser
+[2026-03-22 22:23:00] User found: testuser
+[2026-03-22 22:23:00] Stored hash: $2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
+[2026-03-22 22:23:00] Password verified successfully

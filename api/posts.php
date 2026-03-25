@@ -1,136 +1,170 @@
 <?php
-session_start();
-header("Content-Type: application/json");
-<<<<<<< HEAD
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-=======
->>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
+header('Content-Type: application/json');
+error_reporting(0);
+require_once '../config/db_config.php';
 
-require_once '../config/database.php';
-
-$database = new Database();
-$db = $database->getConnection();
-
-if (!$db) {
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
-    exit;
-}
-<<<<<<< HEAD
-
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-=======
->>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
-
+$pdo = getDBConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
-if ($method === 'GET') {
-<<<<<<< HEAD
-    try {
-        $query = "SELECT * FROM posts ORDER BY created_at DESC";
-        $stmt = $db->prepare($query);
-        $stmt->execute();
-        $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode($posts);
-    } catch (Exception $e) {
-        error_log("Get posts error: " . $e->getMessage());
-        echo json_encode([]);
-=======
-    $query = "SELECT * FROM posts ORDER BY created_at DESC";
-    $stmt = $db->prepare($query);
-    $stmt->execute();
-    $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode($posts);
-    exit;
-}
-
-if ($method === 'POST') {
-    if (!isset($_SESSION['user_id'])) {
-        echo json_encode(['success' => false, 'message' => 'Not logged in']);
-        exit;
-    }
-    
-    $data = json_decode(file_get_contents("php://input"));
-    
-    if (!$data || !isset($data->header) || !isset($data->description)) {
-        echo json_encode(['success' => false, 'message' => 'Missing data']);
-        exit;
-    }
-    
-    $query = "INSERT INTO posts (header, description, image_url, author_id, author_name, author_role) 
-              VALUES (:header, :description, :image_url, :author_id, :author_name, :author_role)";
-    
-    $stmt = $db->prepare($query);
-    
-    $stmt->bindParam(':header', $data->header);
-    $stmt->bindParam(':description', $data->description);
-    $stmt->bindParam(':image_url', $data->image_url);
-    $stmt->bindParam(':author_id', $_SESSION['user_id']);
-    $stmt->bindParam(':author_name', $_SESSION['username']);
-    $stmt->bindParam(':author_role', $_SESSION['role']);
-    
-    if ($stmt->execute()) {
-        echo json_encode(['success' => true, 'message' => 'Post created']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to create post']);
->>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
-    }
-    exit;
-}
-
-if ($method === 'POST') {
-    // Check authentication
-    if (!isset($_SESSION['user_id'])) {
-        echo json_encode(['success' => false, 'message' => 'Not logged in']);
-        exit;
-    }
-    
-    // Check authorization
-    if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'developer') {
-        echo json_encode(['success' => false, 'message' => 'Insufficient permissions']);
-        exit;
-    }
-    
-    $data = json_decode(file_get_contents("php://input"));
-    
-    if (!$data || !isset($data->header) || !isset($data->description)) {
-        echo json_encode(['success' => false, 'message' => 'Missing required fields']);
-        exit;
-    }
-    
-    try {
-        $query = "INSERT INTO posts (header, description, image_url, author_id, author_name, author_role) 
-                  VALUES (:header, :description, :image_url, :author_id, :author_name, :author_role)";
-        
-        $stmt = $db->prepare($query);
-        
-        $header = htmlspecialchars(strip_tags($data->header));
-        $description = htmlspecialchars(strip_tags($data->description));
-        $image_url = isset($data->image_url) ? $data->image_url : null;
-        
-        $stmt->bindParam(':header', $header);
-        $stmt->bindParam(':description', $description);
-        $stmt->bindParam(':image_url', $image_url);
-        $stmt->bindParam(':author_id', $_SESSION['user_id']);
-        $stmt->bindParam(':author_name', $_SESSION['username']);
-        $stmt->bindParam(':author_role', $_SESSION['role']);
-        
-        if ($stmt->execute()) {
-            echo json_encode(['success' => true, 'message' => 'Post created successfully']);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Failed to create post']);
+switch ($method) {
+    case 'GET':
+        try {
+            // Get all posts with author info from users table
+            $stmt = $pdo->query("
+                SELECT p.*, 
+                    u.selected_role as author_role,
+                    (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+                FROM posts p 
+                JOIN users u ON p.user_id = u.id
+                ORDER BY p.created_at DESC
+            ");
+            $posts = $stmt->fetchAll();
+            
+            // Get comments for each post
+            foreach ($posts as &$post) {
+                $stmt = $pdo->prepare("
+                    SELECT c.*, u.username, u.selected_role as user_role
+                    FROM comments c 
+                    JOIN users u ON c.user_id = u.id
+                    WHERE c.post_id = ? 
+                    ORDER BY c.created_at DESC
+                ");
+                $stmt->execute([$post['id']]);
+                $post['comments'] = $stmt->fetchAll();
+                
+                // Format image data
+                if ($post['image_data']) {
+                    $post['image'] = [
+                        'dataUrl' => $post['image_data'],
+                    ];
+                }
+                unset($post['image_data']);
+            }
+            
+            echo json_encode($posts);
+        } catch (Exception $e) {
+            echo json_encode(['error' => $e->getMessage()]);
         }
+        break;
+        
+    case 'POST':
+    try {
+        $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
+        $user = validateSession($token);
+        
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Please login to create posts']);
+            break;
+        }
+        
+        // Check if user has permission to post
+        $canPost = ($user['selected_role'] !== 'Default' && $user['selected_role'] !== 'Admin') || 
+                   ($user['selected_role'] === 'Admin');
+        
+        if (!$canPost) {
+            http_response_code(403);
+            echo json_encode(['error' => 'You need to select a creative role to create posts']);
+            break;
+        }
+        
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        if (empty($data['header']) || empty($data['description'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Header and description are required']);
+            break;
+        }
+        
+        // Handle image data
+        $imageData = null;
+        if (isset($data['image']) && isset($data['image']['dataUrl'])) {
+            $imageData = $data['image']['dataUrl'];
+        }
+        
+        // Insert post using user_id only (no author field)
+        $stmt = $pdo->prepare("
+            INSERT INTO posts (header, description, user_id, image_data, author_role, author_role_display) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        
+        $stmt->execute([
+            $data['header'],
+            $data['description'],
+            $user['id'],
+            $imageData,
+            $user['selected_role'],
+            $user['selected_role']
+        ]);
+        
+        echo json_encode([
+            'success' => true,
+            'id' => $pdo->lastInsertId(),
+            'message' => 'Post created successfully'
+        ]);
     } catch (Exception $e) {
-        error_log("Create post error: " . $e->getMessage());
-        echo json_encode(['success' => false, 'message' => 'Server error occurred']);
+        error_log("Error creating post: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to create post: ' . $e->getMessage()]);
     }
-    exit;
+    break;
+        
+    case 'DELETE':
+        try {
+            // Delete a post
+            $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
+            $user = validateSession($token);
+            
+            if (!$user) {
+                http_response_code(401);
+                echo json_encode(['error' => 'Please login']);
+                break;
+            }
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            $postId = isset($data['postId']) ? intval($data['postId']) : 0;
+            
+            if (!$postId) {
+                echo json_encode(['error' => 'Post ID required']);
+                break;
+            }
+            
+            // Check if user owns the post or is admin
+            $stmt = $pdo->prepare("SELECT user_id FROM posts WHERE id = ?");
+            $stmt->execute([$postId]);
+            $post = $stmt->fetch();
+            
+            if (!$post) {
+                echo json_encode(['error' => 'Post not found']);
+                break;
+            }
+            
+            // Check if user is admin
+            $isAdmin = false;
+            if (isset($user['role']) && $user['role'] === 'admin') {
+                $isAdmin = true;
+            }
+            if (isset($user['selected_role']) && $user['selected_role'] === 'Admin') {
+                $isAdmin = true;
+            }
+            
+            // Allow if user is admin OR user owns the post
+            if ($isAdmin || $post['user_id'] == $user['id']) {
+                $stmt = $pdo->prepare("DELETE FROM posts WHERE id = ?");
+                $stmt->execute([$postId]);
+                echo json_encode(['success' => true, 'message' => 'Post deleted successfully']);
+            } else {
+                http_response_code(403);
+                echo json_encode(['error' => 'You can only delete your own posts']);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+        break;
+        
+    default:
+        http_response_code(405);
+        echo json_encode(['error' => 'Method not allowed']);
+        break;
 }
-
-echo json_encode(['success' => false, 'message' => 'Method not allowed']);
 ?>

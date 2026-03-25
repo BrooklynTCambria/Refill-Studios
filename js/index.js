@@ -58,7 +58,4 @@ document.getElementById("games-button").addEventListener("click", games);
 document.getElementById("index-button").addEventListener("click", home);
 document.getElementById("updates-button").addEventListener("click", updates);
 document.getElementById("account-link").addEventListener("click", account);
-document.getElementById("account-link-here").addEventListener("click", account);
 document.getElementById("sign-up-button").addEventListener("click", signUp);
-
-//reji was here

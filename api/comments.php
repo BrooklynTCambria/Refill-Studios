@@ -1,133 +1,105 @@
 <?php
-session_start();
-header("Content-Type: application/json");
-<<<<<<< HEAD
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-=======
->>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
+header('Content-Type: application/json');
+error_reporting(0);
+require_once '../config/db_config.php';
 
-require_once '../config/database.php';
-
-$database = new Database();
-$db = $database->getConnection();
-
-if (!$db) {
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
-    exit;
-}
-<<<<<<< HEAD
-
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-=======
->>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
-
+$pdo = getDBConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
-if ($method === 'GET') {
-    if (!isset($_GET['post_id'])) {
-        echo json_encode([]);
-        exit;
-    }
-    
-<<<<<<< HEAD
+if ($method === 'POST') {
     try {
-        $query = "SELECT * FROM comments WHERE post_id = :post_id ORDER BY created_at DESC";
-        $stmt = $db->prepare($query);
-        $stmt->bindParam(':post_id', $_GET['post_id']);
-        $stmt->execute();
-        $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode($comments);
+        // Add comment
+        $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
+        $user = validateSession($token);
+        
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Please login to comment']);
+            return;
+        }
+        
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        // Validate input
+        if (empty($data['postId']) || empty($data['text'])) {
+            echo json_encode(['error' => 'Post ID and comment text are required']);
+            return;
+        }
+        
+        // Check if user is a developer (has creative role)
+        $isDev = false;
+        if (isset($user['selected_role']) && $user['selected_role'] !== 'Default') {
+            $isDev = true;
+        }
+        
+        // Insert comment using user_id only
+        $stmt = $pdo->prepare("
+            INSERT INTO comments (post_id, user_id, text, is_dev) 
+            VALUES (?, ?, ?, ?)
+        ");
+        $stmt->execute([
+            $data['postId'],
+            $user['id'],
+            $data['text'],
+            $isDev ? 1 : 0
+        ]);
+        
+        echo json_encode(['success' => true, 'message' => 'Comment added successfully']);
     } catch (Exception $e) {
-        error_log("Get comments error: " . $e->getMessage());
-        echo json_encode([]);
-=======
-    $query = "SELECT * FROM comments WHERE post_id = :post_id ORDER BY created_at DESC";
-    $stmt = $db->prepare($query);
-    $stmt->bindParam(':post_id', $_GET['post_id']);
-    $stmt->execute();
-    $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode($comments);
-    exit;
-}
-
-if ($method === 'POST') {
-    if (!isset($_SESSION['user_id'])) {
-        echo json_encode(['success' => false, 'message' => 'Not logged in']);
-        exit;
+        error_log("Error adding comment: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to add comment: ' . $e->getMessage()]);
     }
-    
-    $data = json_decode(file_get_contents("php://input"));
-    
-    if (!$data || !isset($data->post_id) || !isset($data->text)) {
-        echo json_encode(['success' => false, 'message' => 'Missing data']);
-        exit;
-    }
-    
-    $is_dev = ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'developer') ? 1 : 0;
-    
-    $query = "INSERT INTO comments (post_id, user_id, username, text, is_dev) 
-              VALUES (:post_id, :user_id, :username, :text, :is_dev)";
-    
-    $stmt = $db->prepare($query);
-    $stmt->bindParam(':post_id', $data->post_id);
-    $stmt->bindParam(':user_id', $_SESSION['user_id']);
-    $stmt->bindParam(':username', $_SESSION['username']);
-    $stmt->bindParam(':text', $data->text);
-    $stmt->bindParam(':is_dev', $is_dev);
-    
-    if ($stmt->execute()) {
-        echo json_encode(['success' => true, 'message' => 'Comment added']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to add comment']);
->>>>>>> 037dfa482794a99428b2550e31b9ed595f4493c7
-    }
-    exit;
-}
-
-if ($method === 'POST') {
-    if (!isset($_SESSION['user_id'])) {
-        echo json_encode(['success' => false, 'message' => 'Not logged in']);
-        exit;
-    }
-    
-    $data = json_decode(file_get_contents("php://input"));
-    
-    if (!$data || !isset($data->post_id) || !isset($data->text)) {
-        echo json_encode(['success' => false, 'message' => 'Missing required fields']);
-        exit;
-    }
-    
+} elseif ($method === 'DELETE') {
     try {
-        $is_dev = ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'developer') ? 1 : 0;
-        $text = htmlspecialchars(strip_tags($data->text));
+        // Delete a comment
+        $token = isset($_COOKIE['session_token']) ? $_COOKIE['session_token'] : null;
+        $user = validateSession($token);
         
-        $query = "INSERT INTO comments (post_id, user_id, username, text, is_dev) 
-                  VALUES (:post_id, :user_id, :username, :text, :is_dev)";
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Please login']);
+            return;
+        }
         
-        $stmt = $db->prepare($query);
-        $stmt->bindParam(':post_id', $data->post_id);
-        $stmt->bindParam(':user_id', $_SESSION['user_id']);
-        $stmt->bindParam(':username', $_SESSION['username']);
-        $stmt->bindParam(':text', $text);
-        $stmt->bindParam(':is_dev', $is_dev);
+        $data = json_decode(file_get_contents('php://input'), true);
+        $commentId = isset($data['commentId']) ? intval($data['commentId']) : 0;
         
-        if ($stmt->execute()) {
-            echo json_encode(['success' => true, 'message' => 'Comment added']);
+        if (!$commentId) {
+            echo json_encode(['error' => 'Comment ID required']);
+            return;
+        }
+        
+        // Check if user owns the comment or is admin
+        $stmt = $pdo->prepare("SELECT user_id FROM comments WHERE id = ?");
+        $stmt->execute([$commentId]);
+        $comment = $stmt->fetch();
+        
+        if (!$comment) {
+            echo json_encode(['error' => 'Comment not found']);
+            return;
+        }
+        
+        // Check if user is admin
+        $isAdmin = false;
+        if (isset($user['selected_role']) && $user['selected_role'] === 'Admin') {
+            $isAdmin = true;
+        }
+        
+        // Allow if user is admin OR user owns the comment
+        if ($isAdmin || $comment['user_id'] == $user['id']) {
+            $stmt = $pdo->prepare("DELETE FROM comments WHERE id = ?");
+            $stmt->execute([$commentId]);
+            echo json_encode(['success' => true, 'message' => 'Comment deleted successfully']);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Failed to add comment']);
+            http_response_code(403);
+            echo json_encode(['error' => 'You can only delete your own comments']);
         }
     } catch (Exception $e) {
-        error_log("Add comment error: " . $e->getMessage());
-        echo json_encode(['success' => false, 'message' => 'Server error occurred']);
+        echo json_encode(['error' => $e->getMessage()]);
     }
-    exit;
+} else {
+    http_response_code(405);
+    echo json_encode(['error' => 'Method not allowed']);
 }
-
-echo json_encode(['success' => false, 'message' => 'Method not allowed']);
 ?>
