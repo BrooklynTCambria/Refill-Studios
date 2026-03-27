@@ -177,6 +177,7 @@ try {
             if (empty($username)) $errors[] = 'Username is required';
             if (empty($email)) $errors[] = 'Email is required';
             if (empty($password)) $errors[] = 'Password is required';
+            if (strlen($username) > 20) $errors[] = 'Username must be less than or equal to 20 characters';
             if (strlen($password) < 6) $errors[] = 'Password must be at least 6 characters';
             if (strlen($username) < 3) $errors[] = 'Username must be at least 3 characters';
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Invalid email address';
